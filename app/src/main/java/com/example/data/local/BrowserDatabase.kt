@@ -10,9 +10,10 @@ import androidx.room.RoomDatabase
         BookmarkEntity::class,
         HistoryEntity::class,
         TabEntity::class,
-        SyncSettingsEntity::class
+        SyncSettingsEntity::class,
+        VaultEntity::class
     ],
-    version = 1,
+    version = 2,
     exportSchema = false
 )
 abstract class BrowserDatabase : RoomDatabase() {
@@ -20,6 +21,7 @@ abstract class BrowserDatabase : RoomDatabase() {
     abstract fun historyDao(): HistoryDao
     abstract fun tabDao(): TabDao
     abstract fun syncSettingsDao(): SyncSettingsDao
+    abstract fun vaultDao(): VaultDao
 
     companion object {
         @Volatile

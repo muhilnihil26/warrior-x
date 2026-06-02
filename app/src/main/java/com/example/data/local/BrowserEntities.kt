@@ -45,3 +45,18 @@ data class SyncSettingsEntity(
     val isPrivacyModeEnabled: Boolean = false,
     val lastSyncedTime: Long = 0L
 )
+
+@Entity(tableName = "secure_vault")
+data class VaultEntity(
+    @PrimaryKey(autoGenerate = true) val id: Int = 0,
+    val type: String, // "credential" or "note"
+    val siteNameOrTitle: String, // Decrypted title if plaintext
+    val loginName: String = "", // Decrypted username
+    val secretValue: String = "", // Decrypted password/payload
+    val isEncrypted: Boolean = false,
+    val encryptedTitle: String = "",
+    val encryptedLogin: String = "",
+    val encryptedValue: String = "",
+    val timestamp: Long = System.currentTimeMillis()
+)
+

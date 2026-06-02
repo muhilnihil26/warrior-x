@@ -48,6 +48,10 @@ import com.example.data.local.HistoryEntity
 import com.example.data.xml.RecommendationItem
 import com.example.ui.BrowserViewModel
 import com.example.ui.SyncedDevice
+import android.widget.Toast
+import android.content.ClipboardManager
+import android.content.ClipData
+import android.content.Context
 import java.io.ByteArrayInputStream
 import java.text.SimpleDateFormat
 import java.util.*
@@ -434,6 +438,7 @@ fun WarriorBrowserScreen(
                 }
                 "sync" -> {
                     ZeroKnowledgeSyncSettingsView(
+                        viewModel = viewModel,
                         syncSettings = syncSettings,
                         isSyncing = isSyncing,
                         syncStatusText = syncStatusText,
@@ -1066,6 +1071,7 @@ fun WarriorSecureWebView(
 ) {
     val context = LocalContext.current
     val adBlockState = rememberUpdatedState(adBlockingEnabled)
+    val selectedUaProfile by viewModel.selectedUserAgent.collectAsStateWithLifecycle()
 
     Box(modifier = Modifier.fillMaxSize()) {
         AndroidView(
@@ -1077,6 +1083,7 @@ fun WarriorSecureWebView(
                         databaseEnabled = true
                         loadWithOverviewMode = true
                         useWideViewPort = true
+                        userAgentString = selectedUaProfile.value
                     }
                     webViewClient = object : WebViewClient() {
                         override fun shouldOverrideUrlLoading(
@@ -1135,6 +1142,10 @@ fun WarriorSecureWebView(
                 // Check if we need to load new URL
                 if (webView.url != url) {
                     webView.loadUrl(url)
+                }
+                // Check if user agent changed
+                if (webView.settings.userAgentString != selectedUaProfile.value) {
+                    webView.settings.userAgentString = selectedUaProfile.value
                 }
             },
             modifier = Modifier.fillMaxSize()
@@ -1442,6 +1453,7 @@ fun SecureHistoryView(
 // Device Synchronization & Passphrase setup Panel
 @Composable
 fun ZeroKnowledgeSyncSettingsView(
+    viewModel: BrowserViewModel,
     syncSettings: com.example.data.local.SyncSettingsEntity,
     isSyncing: Boolean,
     syncStatusText: String,
@@ -1459,550 +1471,1601 @@ fun ZeroKnowledgeSyncSettingsView(
     onLogout: () -> Unit,
     onDismissMessage: () -> Unit
 ) {
-    var passphraseInput by remember { mutableStateOf(syncSettings.syncPassphrase) }
-    var showPassphrase by remember { mutableStateOf(false) }
+    var activeSubSection by remember { mutableStateOf("zero_sync") } // "zero_sync", "credentials", "sandboxing"
+    val adsBlockedCount by viewModel.adsBlockedCount.collectAsStateWithLifecycle()
 
-    LazyColumn(
+    Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+            .background(ObsidianBg)
     ) {
-        // Firebase Authentication Sync Profile Card
-        item {
-            var authEmail by remember { mutableStateOf("") }
-            var authPassword by remember { mutableStateOf("") }
-            var isRegisterMode by remember { mutableStateOf(false) }
+        // Multi-tab selector capsules
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 12.dp)
+                .background(CardBg.copy(alpha = 0.8f), RoundedCornerShape(12.dp))
+                .border(1.dp, BorderColor, RoundedCornerShape(12.dp))
+                .padding(4.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            val sections = listOf(
+                "zero_sync" to "Cloud Sync",
+                "credentials" to "Local Vault",
+                "sandboxing" to "Shield Cockpit"
+            )
+            sections.forEach { (secId, secLabel) ->
+                val isSel = activeSubSection == secId
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(if (isSel) primaryThemeColor else Color.Transparent)
+                        .clickable { activeSubSection = secId }
+                        .padding(vertical = 10.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = secLabel,
+                        color = if (isSel) Color.White else GrayMuted,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+        }
 
-            Card(
-                colors = CardDefaults.cardColors(containerColor = CardBg),
-                border = BorderStroke(1.dp, BorderColor),
-                shape = RoundedCornerShape(16.dp),
-                modifier = Modifier.fillMaxWidth().testTag("firebase_auth_card")
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
+        Box(modifier = Modifier.weight(1f)) {
+            when (activeSubSection) {
+                "zero_sync" -> {
+                    var passphraseInput by remember { mutableStateOf(syncSettings.syncPassphrase) }
+                    var showPassphrase by remember { mutableStateOf(false) }
+                    var showGoogleChooser by remember { mutableStateOf(false) }
+                    var customGoogleEmail by remember { mutableStateOf("") }
+                    var showCustomEmailField by remember { mutableStateOf(false) }
+
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(horizontal = 16.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = Icons.Filled.AccountCircle,
-                                contentDescription = "Firebase Sync Profile",
-                                tint = primaryThemeColor,
-                                modifier = Modifier.size(24.dp)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
+                        // Firebase Authentication Sync Profile Card
+                        item {
+                            var authEmail by remember { mutableStateOf("") }
+                            var authPassword by remember { mutableStateOf("") }
+                            var isRegisterMode by remember { mutableStateOf(false) }
+
+                            Card(
+                                colors = CardDefaults.cardColors(containerColor = CardBg),
+                                border = BorderStroke(1.dp, BorderColor),
+                                shape = RoundedCornerShape(16.dp),
+                                modifier = Modifier.fillMaxWidth().testTag("firebase_auth_card")
+                            ) {
+                                Column(modifier = Modifier.padding(16.dp)) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Icon(
+                                                imageVector = Icons.Filled.AccountCircle,
+                                                contentDescription = "Firebase Sync Profile",
+                                                tint = primaryThemeColor,
+                                                modifier = Modifier.size(24.dp)
+                                            )
+                                            Spacer(modifier = Modifier.width(8.dp))
+                                            Text(
+                                                "WARRIOR ACCOUNT (FIREBASE)",
+                                                color = WhiteSoft,
+                                                fontWeight = FontWeight.Bold,
+                                                fontSize = 14.sp
+                                            )
+                                        }
+
+                                        if (currentUserEmail != null) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .clip(RoundedCornerShape(6.dp))
+                                                    .background(AdBlockGreen.copy(alpha = 0.15f))
+                                                    .padding(horizontal = 8.dp, vertical = 4.dp)
+                                            ) {
+                                                Text(
+                                                    "SECURED",
+                                                    color = AdBlockGreen,
+                                                    fontSize = 9.sp,
+                                                    fontWeight = FontWeight.Bold
+                                                )
+                                            }
+                                        }
+                                    }
+
+                                    Spacer(modifier = Modifier.height(10.dp))
+
+                                    if (currentUserEmail != null) {
+                                        // User is signed in
+                                        Text(
+                                            "Account ID (Email):",
+                                            color = GrayMuted,
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.Medium
+                                        )
+                                        Text(
+                                            text = currentUserEmail,
+                                            color = WhiteSoft,
+                                            fontSize = 15.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            modifier = Modifier.padding(vertical = 4.dp).testTag("authenticated_user_email")
+                                        )
+                                        Spacer(modifier = Modifier.height(6.dp))
+                                        Text(
+                                            "You are successfully logged in! Your browser bookmarks, configurations and tabs can now sync under secure end-to-end cloud protection nodes.",
+                                            color = GrayMuted,
+                                            fontSize = 11.sp,
+                                            lineHeight = 16.sp
+                                        )
+                                        Spacer(modifier = Modifier.height(12.dp))
+
+                                        Button(
+                                            onClick = onLogout,
+                                            modifier = Modifier.fillMaxWidth().testTag("logout_account_btn"),
+                                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFEF4444)), // Red signout
+                                            shape = RoundedCornerShape(10.dp)
+                                        ) {
+                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                                Icon(Icons.Filled.Logout, contentDescription = "Sign Out", tint = Color.White, modifier = Modifier.size(16.dp))
+                                                Spacer(modifier = Modifier.width(8.dp))
+                                                Text("Sign Out Sync Profile", fontWeight = FontWeight.Bold, color = Color.White)
+                                            }
+                                        }
+                                    } else {
+                                        // User is NOT signed in (Form Mode)
+                                        Text(
+                                            text = if (isRegisterMode)
+                                                "Create a free cloud account using Firebase Auth to keep your bookmarks and history synced across browsers."
+                                            else
+                                                "Log in with your email and password to connect with real Firebase Sync Nodes.",
+                                            color = GrayMuted,
+                                            fontSize = 11.sp,
+                                            lineHeight = 16.sp
+                                        )
+
+                                        Spacer(modifier = Modifier.height(12.dp))
+
+                                        // Email Field
+                                        OutlinedTextField(
+                                            value = authEmail,
+                                            onValueChange = { authEmail = it },
+                                            modifier = Modifier.fillMaxWidth().testTag("auth_email_input"),
+                                            label = { Text("Email Address", color = GrayMuted, fontSize = 12.sp) },
+                                            singleLine = true,
+                                            colors = OutlinedTextFieldDefaults.colors(
+                                                focusedContainerColor = ObsidianBg,
+                                                unfocusedContainerColor = ObsidianBg,
+                                                focusedTextColor = WhiteSoft,
+                                                unfocusedTextColor = WhiteSoft,
+                                                focusedBorderColor = primaryThemeColor,
+                                                unfocusedBorderColor = BorderColor
+                                            ),
+                                            shape = RoundedCornerShape(10.dp)
+                                        )
+
+                                        Spacer(modifier = Modifier.height(8.dp))
+
+                                        // Password Field
+                                        var showAuthPassword by remember { mutableStateOf(false) }
+                                        OutlinedTextField(
+                                            value = authPassword,
+                                            onValueChange = { authPassword = it },
+                                            modifier = Modifier.fillMaxWidth().testTag("auth_password_input"),
+                                            label = { Text("Password", color = GrayMuted, fontSize = 12.sp) },
+                                            singleLine = true,
+                                            visualTransformation = if (showAuthPassword) VisualTransformation.None else PasswordVisualTransformation(),
+                                            trailingIcon = {
+                                                IconButton(onClick = { showAuthPassword = !showAuthPassword }) {
+                                                    Icon(
+                                                        imageVector = if (showAuthPassword) Icons.Filled.Visibility else Icons.Filled.VisibilityOff,
+                                                        contentDescription = "Toggle password",
+                                                        tint = GrayMuted
+                                                    )
+                                                }
+                                            },
+                                            colors = OutlinedTextFieldDefaults.colors(
+                                                focusedContainerColor = ObsidianBg,
+                                                unfocusedContainerColor = ObsidianBg,
+                                                focusedTextColor = WhiteSoft,
+                                                unfocusedTextColor = WhiteSoft,
+                                                focusedBorderColor = primaryThemeColor,
+                                                unfocusedBorderColor = BorderColor
+                                            ),
+                                            shape = RoundedCornerShape(10.dp)
+                                        )
+
+                                        Spacer(modifier = Modifier.height(12.dp))
+
+                                        if (authLoading) {
+                                            Box(
+                                                modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                CircularProgressIndicator(color = primaryThemeColor, modifier = Modifier.size(24.dp))
+                                            }
+                                        } else {
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                            ) {
+                                                Button(
+                                                    onClick = {
+                                                        if (isRegisterMode) {
+                                                            onSignup(authEmail, authPassword)
+                                                        } else {
+                                                            onLogin(authEmail, authPassword)
+                                                        }
+                                                    },
+                                                    modifier = Modifier.weight(1f).testTag("auth_submit_btn"),
+                                                    colors = ButtonDefaults.buttonColors(containerColor = primaryThemeColor),
+                                                    shape = RoundedCornerShape(10.dp)
+                                                ) {
+                                                    Text(
+                                                        text = if (isRegisterMode) "Create Account" else "Log In",
+                                                        fontWeight = FontWeight.Bold
+                                                    )
+                                                }
+
+                                                Button(
+                                                    onClick = {
+                                                        isRegisterMode = !isRegisterMode
+                                                        onDismissMessage()
+                                                    },
+                                                    modifier = Modifier.weight(1f).testTag("auth_toggle_mode_btn"),
+                                                    colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent, contentColor = primaryThemeColor),
+                                                    border = BorderStroke(1.dp, primaryThemeColor),
+                                                    shape = RoundedCornerShape(10.dp)
+                                                ) {
+                                                    Text(
+                                                        text = if (isRegisterMode) "Switch to Login" else "Create Account",
+                                                        fontWeight = FontWeight.SemiBold,
+                                                        fontSize = 11.sp
+                                                    )
+                                                }
+                                            }
+                                        }
+
+                                        Spacer(modifier = Modifier.height(16.dp))
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Box(modifier = Modifier.weight(1f).height(1.dp).background(BorderColor))
+                                            Text(
+                                                "OR CONNECT VIA CLOUD PORTAL",
+                                                color = GrayMuted,
+                                                fontSize = 9.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                modifier = Modifier.padding(horizontal = 8.dp)
+                                            )
+                                            Box(modifier = Modifier.weight(1f).height(1.dp).background(BorderColor))
+                                        }
+                                        Spacer(modifier = Modifier.height(14.dp))
+
+                                        // Continue with Google Auth Button
+                                        Button(
+                                            onClick = { showGoogleChooser = true },
+                                            modifier = Modifier.fillMaxWidth().testTag("google_login_btn"),
+                                            colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = Color.Black),
+                                            shape = RoundedCornerShape(10.dp)
+                                        ) {
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.Center,
+                                                modifier = Modifier.padding(vertical = 4.dp)
+                                            ) {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .size(18.dp)
+                                                        .clip(RoundedCornerShape(4.dp))
+                                                        .background(primaryThemeColor.copy(alpha = 0.15f)),
+                                                    contentAlignment = Alignment.Center
+                                                ) {
+                                                    Text(
+                                                        "G",
+                                                        color = primaryThemeColor,
+                                                        fontWeight = FontWeight.Black,
+                                                        fontSize = 13.sp
+                                                    )
+                                                }
+                                                Spacer(modifier = Modifier.width(10.dp))
+                                                Text(
+                                                    "Continue with Google Secure Node",
+                                                    fontWeight = FontWeight.Bold,
+                                                    fontSize = 13.sp,
+                                                    color = Color.Black
+                                                )
+                                            }
+                                        }
+
+                                        // Google Account Chooser Dialog
+                                        if (showGoogleChooser) {
+                                            androidx.compose.ui.window.Dialog(
+                                                onDismissRequest = { showGoogleChooser = false }
+                                            ) {
+                                                Card(
+                                                    colors = CardDefaults.cardColors(containerColor = CardBg),
+                                                    border = BorderStroke(1.dp, BorderColor),
+                                                    shape = RoundedCornerShape(20.dp),
+                                                    modifier = Modifier.fillMaxWidth().padding(16.dp)
+                                                ) {
+                                                    Column(
+                                                        modifier = Modifier.fillMaxWidth().padding(20.dp),
+                                                        horizontalAlignment = Alignment.CenterHorizontally
+                                                    ) {
+                                                        Box(
+                                                            modifier = Modifier
+                                                                .size(44.dp)
+                                                                .clip(RoundedCornerShape(12.dp))
+                                                                .background(primaryThemeColor.copy(alpha = 0.15f)),
+                                                            contentAlignment = Alignment.Center
+                                                        ) {
+                                                            Text(
+                                                                "G",
+                                                                color = primaryThemeColor,
+                                                                fontWeight = FontWeight.Black,
+                                                                fontSize = 24.sp
+                                                            )
+                                                        }
+                                                        Spacer(modifier = Modifier.height(12.dp))
+                                                        Text(
+                                                            "Sign in with Google",
+                                                            color = WhiteSoft,
+                                                            fontSize = 18.sp,
+                                                            fontWeight = FontWeight.Bold
+                                                        )
+                                                        Text(
+                                                            "to sync with Warrior Cloud Nodes",
+                                                            color = GrayMuted,
+                                                            fontSize = 11.sp,
+                                                            modifier = Modifier.padding(top = 2.dp)
+                                                        )
+
+                                                        Spacer(modifier = Modifier.height(20.dp))
+
+                                                        val googleAccounts = listOf(
+                                                            "Muhil Siddhesh" to "muhilsiddhesh.in@gmail.com",
+                                                            "Warrior Security Sandbox" to "warrior.test.sandbox@gmail.com"
+                                                        )
+
+                                                        googleAccounts.forEach { (name, email) ->
+                                                            Card(
+                                                                colors = CardDefaults.cardColors(containerColor = ObsidianBg),
+                                                                border = BorderStroke(1.dp, BorderColor),
+                                                                shape = RoundedCornerShape(12.dp),
+                                                                modifier = Modifier
+                                                                    .fillMaxWidth()
+                                                                    .padding(vertical = 4.dp)
+                                                                    .clickable {
+                                                                        showGoogleChooser = false
+                                                                        viewModel.simulateGoogleAuth(email, name)
+                                                                    }
+                                                            ) {
+                                                                Row(
+                                                                    modifier = Modifier.fillMaxWidth().padding(12.dp),
+                                                                    verticalAlignment = Alignment.CenterVertically
+                                                                ) {
+                                                                    Box(
+                                                                        modifier = Modifier
+                                                                            .size(32.dp)
+                                                                            .clip(RoundedCornerShape(100.dp))
+                                                                            .background(primaryThemeColor),
+                                                                        contentAlignment = Alignment.Center
+                                                                    ) {
+                                                                        Text(
+                                                                            name.take(1).uppercase(),
+                                                                            color = Color.White,
+                                                                            fontWeight = FontWeight.Bold,
+                                                                            fontSize = 13.sp
+                                                                        )
+                                                                    }
+                                                                    Spacer(modifier = Modifier.width(12.dp))
+                                                                    Column {
+                                                                        Text(
+                                                                            name,
+                                                                            color = WhiteSoft,
+                                                                            fontSize = 13.sp,
+                                                                            fontWeight = FontWeight.Bold
+                                                                        )
+                                                                        Text(
+                                                                            email,
+                                                                            color = GrayMuted,
+                                                                            fontSize = 11.sp
+                                                                        )
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+
+                                                        if (!showCustomEmailField) {
+                                                            TextButton(
+                                                                onClick = { showCustomEmailField = true },
+                                                                modifier = Modifier.padding(top = 8.dp)
+                                                            ) {
+                                                                Text("Use another Google account", color = primaryThemeColor, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                                                            }
+                                                        } else {
+                                                            Spacer(modifier = Modifier.height(10.dp))
+                                                            OutlinedTextField(
+                                                                value = customGoogleEmail,
+                                                                onValueChange = { customGoogleEmail = it },
+                                                                label = { Text("Enter Google Email", color = GrayMuted, fontSize = 11.sp) },
+                                                                modifier = Modifier.fillMaxWidth(),
+                                                                singleLine = true,
+                                                                colors = OutlinedTextFieldDefaults.colors(
+                                                                    focusedContainerColor = ObsidianBg,
+                                                                    unfocusedContainerColor = ObsidianBg,
+                                                                    focusedBorderColor = primaryThemeColor,
+                                                                    unfocusedBorderColor = BorderColor,
+                                                                    focusedTextColor = WhiteSoft,
+                                                                    unfocusedTextColor = WhiteSoft
+                                                                ),
+                                                                shape = RoundedCornerShape(8.dp)
+                                                            )
+                                                            Spacer(modifier = Modifier.height(10.dp))
+                                                            Row(
+                                                                modifier = Modifier.fillMaxWidth(),
+                                                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                                            ) {
+                                                                Button(
+                                                                    onClick = {
+                                                                        if (customGoogleEmail.isNotBlank()) {
+                                                                            showGoogleChooser = false
+                                                                            viewModel.simulateGoogleAuth(customGoogleEmail, "Google Sync Account")
+                                                                        }
+                                                                    },
+                                                                    modifier = Modifier.weight(1f),
+                                                                    colors = ButtonDefaults.buttonColors(containerColor = primaryThemeColor),
+                                                                    shape = RoundedCornerShape(8.dp)
+                                                                ) {
+                                                                    Text("Sign In", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                                                }
+                                                                Button(
+                                                                    onClick = { showCustomEmailField = false },
+                                                                    modifier = Modifier.weight(1f),
+                                                                    colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent, contentColor = GrayMuted),
+                                                                    border = BorderStroke(1.dp, BorderColor),
+                                                                    shape = RoundedCornerShape(8.dp)
+                                                                ) {
+                                                                    Text("Cancel", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                                                }
+                                                            }
+                                                        }
+
+                                                        Spacer(modifier = Modifier.height(16.dp))
+                                                        Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(BorderColor))
+
+                                                        TextButton(
+                                                            onClick = { showGoogleChooser = false },
+                                                            modifier = Modifier.padding(top = 4.dp)
+                                                        ) {
+                                                            Text("Cancel Secure Portal", color = Color(0xFFEF4444), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    // Display Error / Success Notifications cleanly
+                                    if (authError != null) {
+                                        Spacer(modifier = Modifier.height(10.dp))
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .clip(RoundedCornerShape(8.dp))
+                                                .background(Color(0xFFFEF2F2))
+                                                .border(1.dp, Color(0xFFFCA5A5), RoundedCornerShape(8.dp))
+                                                .padding(8.dp)
+                                        ) {
+                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                                Icon(Icons.Filled.Error, contentDescription = "Error", tint = Color(0xFFEF4444), modifier = Modifier.size(16.dp))
+                                                Spacer(modifier = Modifier.width(6.dp))
+                                                Text(authError, color = Color(0xFF991B1B), fontSize = 11.sp, modifier = Modifier.weight(1f))
+                                                IconButton(
+                                                    onClick = onDismissMessage,
+                                                    modifier = Modifier.size(16.dp)
+                                                ) {
+                                                    Icon(Icons.Filled.Close, contentDescription = "Dismiss", tint = Color(0xFF991B1B), modifier = Modifier.size(12.dp))
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    if (authSuccess != null) {
+                                        Spacer(modifier = Modifier.height(10.dp))
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .clip(RoundedCornerShape(8.dp))
+                                                .background(Color(0xFFECFDF5))
+                                                .border(1.dp, Color(0xFF6EE7B7), RoundedCornerShape(8.dp))
+                                                .padding(8.dp)
+                                        ) {
+                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                                Icon(Icons.Filled.CheckCircle, contentDescription = "Success", tint = AdBlockGreen, modifier = Modifier.size(16.dp))
+                                                Spacer(modifier = Modifier.width(6.dp))
+                                                Text(authSuccess, color = Color(0xFF065F46), fontSize = 11.sp, modifier = Modifier.weight(1f))
+                                                IconButton(
+                                                    onClick = onDismissMessage,
+                                                    modifier = Modifier.size(16.dp)
+                                                ) {
+                                                    Icon(Icons.Filled.Close, contentDescription = "Dismiss", tint = Color(0xFF065F46), modifier = Modifier.size(12.dp))
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        // Explanatory Intro Card
+                        item {
+                            Card(
+                                colors = CardDefaults.cardColors(containerColor = CardBg),
+                                border = BorderStroke(1.dp, BorderColor),
+                                shape = RoundedCornerShape(16.dp),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Column(modifier = Modifier.padding(16.dp)) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(
+                                            imageVector = Icons.Filled.Fingerprint,
+                                            contentDescription = "Zero-Knowledge",
+                                            tint = CyberTeal,
+                                            modifier = Modifier.size(24.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text(
+                                            "Zero-Knowledge Architecture",
+                                            color = WhiteSoft,
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 16.sp
+                                        )
+                                    }
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    Text(
+                                        "All of your navigation histories, bookmarks and session data are cryptographically encrypted on this device using an AES-256 key derived from your sync passphrase. " +
+                                                "No plaintext data is ever sent over the network, ensuring complete user confidentiality across macOS, Windows, and Android.",
+                                        color = GrayMuted,
+                                        fontSize = 11.sp,
+                                        lineHeight = 16.sp
+                                    )
+                                }
+                            }
+                        }
+
+                        // Passphrase Setup Card
+                        item {
+                            Card(
+                                colors = CardDefaults.cardColors(containerColor = CardBg),
+                                border = BorderStroke(1.dp, BorderColor),
+                                shape = RoundedCornerShape(14.dp),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Column(modifier = Modifier.padding(14.dp)) {
+                                    Text(
+                                        "SYNC PASSPHRASE",
+                                        color = WhiteSoft,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 11.sp,
+                                        letterSpacing = 0.5.sp
+                                    )
+                                    Spacer(modifier = Modifier.height(6.dp))
+                                    Text(
+                                        "Sets client-side Master AES encryption. If you clear this passphrase, data is decrypted into standard storage.",
+                                        color = GrayMuted,
+                                        fontSize = 10.sp
+                                    )
+
+                                    Spacer(modifier = Modifier.height(12.dp))
+
+                                    OutlinedTextField(
+                                        value = passphraseInput,
+                                        onValueChange = { passphraseInput = it },
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .testTag("passphrase_text_input"),
+                                        label = { Text("Enter Passphrase", color = GrayMuted, fontSize = 12.sp) },
+                                        visualTransformation = if (showPassphrase) VisualTransformation.None else PasswordVisualTransformation(),
+                                        trailingIcon = {
+                                            IconButton(onClick = { showPassphrase = !showPassphrase }) {
+                                                Icon(
+                                                    imageVector = if (showPassphrase) Icons.Filled.Visibility else Icons.Filled.VisibilityOff,
+                                                    contentDescription = "Toggle visibility",
+                                                    tint = GrayMuted
+                                                )
+                                            }
+                                        },
+                                        singleLine = true,
+                                        colors = OutlinedTextFieldDefaults.colors(
+                                            focusedContainerColor = CardBg,
+                                            unfocusedContainerColor = CardBg,
+                                            focusedBorderColor = primaryThemeColor,
+                                            unfocusedBorderColor = BorderColor,
+                                            focusedTextColor = WhiteSoft,
+                                            unfocusedTextColor = WhiteSoft
+                                        ),
+                                        shape = RoundedCornerShape(100.dp)
+                                    )
+
+                                    Spacer(modifier = Modifier.height(10.dp))
+
+                                    Button(
+                                        onClick = { onUpdatePassphrase(passphraseInput) },
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .testTag("save_passphrase_btn"),
+                                        colors = ButtonDefaults.buttonColors(containerColor = primaryThemeColor),
+                                        shape = RoundedCornerShape(10.dp)
+                                    ) {
+                                        Text("Apply AES Encryption Key", fontWeight = FontWeight.Bold)
+                                    }
+                                }
+                            }
+                        }
+
+                        // Cross-platform synchronization trigger card
+                        item {
+                            Card(
+                                colors = CardDefaults.cardColors(containerColor = CardBg),
+                                border = BorderStroke(1.dp, BorderColor),
+                                shape = RoundedCornerShape(14.dp),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Column(modifier = Modifier.padding(14.dp)) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Column {
+                                            Text(
+                                                "CROSS-PLATFORM CLOUD SYNC",
+                                                color = WhiteSoft,
+                                                fontWeight = FontWeight.Bold,
+                                                fontSize = 11.sp,
+                                                letterSpacing = 0.5.sp
+                                            )
+                                            Text(
+                                                "Keep database synced with macOS & Windows",
+                                                color = GrayMuted,
+                                                fontSize = 10.sp
+                                            )
+                                        }
+                                        val isCloudEnabled = syncSettings.isCloudSyncEnabled
+                                        Switch(
+                                            checked = isCloudEnabled,
+                                            onCheckedChange = { onToggleCloudSync(it) },
+                                            modifier = Modifier.testTag("cloud_sync_switch"),
+                                            colors = SwitchDefaults.colors(
+                                                checkedThumbColor = AdBlockGreen,
+                                                checkedTrackColor = AdBlockGreen.copy(alpha = 0.3f)
+                                            )
+                                        )
+                                    }
+
+                                    Spacer(modifier = Modifier.height(12.dp))
+
+                                    // Sync Status message box
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clip(RoundedCornerShape(8.dp))
+                                            .background(ObsidianBg)
+                                            .border(1.dp, BorderColor, RoundedCornerShape(8.dp))
+                                            .padding(10.dp),
+                                        contentAlignment = Alignment.CenterStart
+                                    ) {
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            if (isSyncing) {
+                                                CircularProgressIndicator(
+                                                    modifier = Modifier.size(16.dp),
+                                                    color = primaryThemeColor,
+                                                    strokeWidth = 2.dp
+                                                )
+                                            } else {
+                                                Icon(
+                                                    imageVector = if (syncSettings.isCloudSyncEnabled) Icons.Filled.SyncAlt else Icons.Filled.SyncDisabled,
+                                                    contentDescription = "Sync status",
+                                                    tint = if (syncSettings.isCloudSyncEnabled) AdBlockGreen else GrayMuted,
+                                                    modifier = Modifier.size(16.dp)
+                                                )
+                                            }
+                                            Spacer(modifier = Modifier.width(8.dp))
+                                            Text(
+                                                text = syncStatusText,
+                                                color = if (isSyncing) primaryThemeColor else WhiteSoft,
+                                                fontSize = 11.sp,
+                                                fontWeight = FontWeight.Medium
+                                            )
+                                        }
+                                    }
+
+                                    Spacer(modifier = Modifier.height(12.dp))
+
+                                    Button(
+                                        onClick = onTriggerSyncNow,
+                                        enabled = syncSettings.isCloudSyncEnabled && !isSyncing,
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .testTag("trigger_sync_btn"),
+                                        colors = ButtonDefaults.buttonColors(containerColor = AdBlockGreen),
+                                        shape = RoundedCornerShape(10.dp)
+                                    ) {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.Center
+                                        ) {
+                                            Icon(Icons.Filled.CloudSync, contentDescription = "Sync Now", tint = Color.White)
+                                            Spacer(modifier = Modifier.width(8.dp))
+                                            Text("Secure Sync All Devices", fontWeight = FontWeight.Black)
+                                        }
+                                    }
+
+                                    if (syncSettings.lastSyncedTime > 0) {
+                                        val lastSyncedFormatted = remember(syncSettings.lastSyncedTime) {
+                                            val fmt = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
+                                            fmt.format(Date(syncSettings.lastSyncedTime))
+                                        }
+                                        Spacer(modifier = Modifier.height(6.dp))
+                                        Text(
+                                            text = "Last Synced Successfully: $lastSyncedFormatted",
+                                            color = GrayMuted,
+                                            fontSize = 10.sp,
+                                            modifier = Modifier.align(Alignment.CenterHorizontally)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+
+                        // Active devices list section (macOS / Windows browser clients)
+                        item {
                             Text(
-                                "WARRIOR ACCOUNT (FIREBASE)",
+                                "CONNECTED DEVICES (macOS / WINDOWS)",
                                 color = WhiteSoft,
                                 fontWeight = FontWeight.Bold,
-                                fontSize = 14.sp
+                                fontSize = 11.sp,
+                                letterSpacing = 0.5.sp
                             )
+                            Spacer(modifier = Modifier.height(4.dp))
                         }
-                        
-                        if (currentUserEmail != null) {
-                            Box(
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(6.dp))
-                                    .background(AdBlockGreen.copy(alpha = 0.15f))
-                                    .padding(horizontal = 8.dp, vertical = 4.dp)
+
+                        items(otherDevices) { dev ->
+                            Card(
+                                colors = CardDefaults.cardColors(containerColor = CardBg),
+                                border = BorderStroke(1.dp, BorderColor),
+                                shape = RoundedCornerShape(10.dp),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(12.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(34.dp)
+                                                .clip(RoundedCornerShape(6.dp))
+                                                .background(primaryThemeColor.copy(alpha = 0.15f)),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Icon(
+                                                imageVector = if (dev.name.contains("macOS")) Icons.Filled.LaptopMac else Icons.Filled.Laptop,
+                                                contentDescription = "Device icon",
+                                                tint = primaryThemeColor,
+                                                modifier = Modifier.size(18.dp)
+                                            )
+                                        }
+                                        Spacer(modifier = Modifier.width(12.dp))
+                                        Column {
+                                            Text(dev.name, color = WhiteSoft, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                            Text(dev.type, color = GrayMuted, fontSize = 11.sp)
+                                        }
+                                    }
+
+                                    Column(horizontalAlignment = Alignment.End) {
+                                        Box(
+                                            modifier = Modifier
+                                                .clip(RoundedCornerShape(4.dp))
+                                                .background(AdBlockGreen.copy(alpha = 0.15f))
+                                                .padding(horizontal = 6.dp, vertical = 2.dp)
+                                        ) {
+                                            Text(dev.status, color = AdBlockGreen, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                                        }
+                                        Spacer(modifier = Modifier.height(2.dp))
+                                        Text(dev.lastSeen, color = GrayMuted, fontSize = 10.sp)
+                                    }
+                                }
+                            }
+                        }
+
+                        item {
+                            Spacer(modifier = Modifier.height(20.dp))
+                        }
+                    }
+                }
+
+                "credentials" -> {
+                    CredentialsVaultView(
+                        viewModel = viewModel,
+                        syncSettings = syncSettings,
+                        primaryThemeColor = primaryThemeColor
+                    )
+                }
+
+                "sandboxing" -> {
+                    TrackingRadarSandboxView(
+                        viewModel = viewModel,
+                        adsBlockedCount = adsBlockedCount,
+                        primaryThemeColor = primaryThemeColor
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun CredentialsVaultView(
+    viewModel: BrowserViewModel,
+    syncSettings: com.example.data.local.SyncSettingsEntity,
+    primaryThemeColor: Color
+) {
+    val vaultItems by viewModel.vaultItems.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+
+    var showAddDialog by remember { mutableStateOf(false) }
+    var entryType by remember { mutableStateOf("credential") } // "credential" or "note"
+    var titleInput by remember { mutableStateOf("") }
+    var loginInput by remember { mutableStateOf("") }
+    var secretInput by remember { mutableStateOf("") }
+    var passwordVisible by remember { mutableStateOf(mapOf<Int, Boolean>()) } // to toggle individual passwords
+
+    // Generator states
+    var generatedPasswordLength by remember { mutableStateOf(16f) }
+
+    fun generateRandomPassword(len: Int): String {
+        val chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*"
+        return (1..len).map { chars.random() }.joinToString("")
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 16.dp)
+    ) {
+        // Warning if passphrase is empty
+        val isPassphraseSet = syncSettings.syncPassphrase.isNotEmpty()
+        if (!isPassphraseSet) {
+            Card(
+                colors = CardDefaults.cardColors(containerColor = Color(0xFFFEF2F2)),
+                border = BorderStroke(1.dp, Color(0xFFFCA5A5)),
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp)
+            ) {
+                Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Filled.Warning, contentDescription = null, tint = Color(0xFFDC2626), modifier = Modifier.size(24.dp))
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Column {
+                        Text(
+                            "Plaintext Local Storage Warning",
+                            color = Color(0xFF991B1B),
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            "These credentials are saved unencrypted. Set a Master Sync Passphrase in Cloud Sync tab to activate Zero-Knowledge client-side end-to-end AES-256.",
+                            color = Color(0xFF7F1D1D),
+                            fontSize = 10.sp,
+                            lineHeight = 14.sp
+                        )
+                    }
+                }
+            }
+        } else {
+            Card(
+                colors = CardDefaults.cardColors(containerColor = Color(0xFFECFDF5)),
+                border = BorderStroke(1.dp, Color(0xFFA7F3D0)),
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp)
+            ) {
+                Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Filled.GppGood, contentDescription = null, tint = Color(0xFF059669), modifier = Modifier.size(24.dp))
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Column {
+                        Text(
+                            "AES-256 Zero-Knowledge Active",
+                            color = Color(0xFF065F46),
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            "Your safe cabinet credentials are encrypted locally before hitting disk or network nodes using derived passphrase keys.",
+                            color = Color(0xFF064E3B),
+                            fontSize = 10.sp,
+                            lineHeight = 14.sp
+                        )
+                    }
+                }
+            }
+        }
+
+        // Action Header
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                "SECURED ITEMS COFFER (${vaultItems.size})",
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Bold,
+                color = GrayMuted,
+                letterSpacing = 0.5.sp
+            )
+
+            Button(
+                onClick = {
+                    titleInput = ""
+                    loginInput = ""
+                    secretInput = ""
+                    entryType = "credential"
+                    showAddDialog = true
+                },
+                colors = ButtonDefaults.buttonColors(containerColor = primaryThemeColor),
+                shape = RoundedCornerShape(8.dp),
+                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                modifier = Modifier.testTag("add_vault_item_btn")
+            ) {
+                Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.size(14.dp), tint = Color.White)
+                Spacer(modifier = Modifier.width(4.dp))
+                Text("Add Entry", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.White)
+            }
+        }
+
+        Spacer(modifier = Modifier.height(10.dp))
+
+        if (vaultItems.isEmpty()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Icon(Icons.Filled.Lock, contentDescription = null, tint = BorderColor, modifier = Modifier.size(48.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text("Your vault coffer is empty", fontSize = 13.sp, color = GrayMuted, fontWeight = FontWeight.Medium)
+                }
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                items(vaultItems) { item ->
+                    val isCred = item.type == "credential"
+                    val isSecretVisible = passwordVisible[item.id] ?: false
+
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = CardBg),
+                        shape = RoundedCornerShape(12.dp),
+                        border = BorderStroke(1.dp, BorderColor),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(modifier = Modifier.padding(14.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(
+                                        imageVector = if (isCred) Icons.Filled.VpnKey else Icons.Filled.TextSnippet,
+                                        contentDescription = null,
+                                        tint = if (isCred) CyberTeal else IncognitoPurple,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        text = item.siteNameOrTitle,
+                                        color = WhiteSoft,
+                                        fontSize = 14.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+
+                                Box(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(6.dp))
+                                        .background(if (isCred) CyberTeal.copy(alpha = 0.12f) else IncognitoPurple.copy(alpha = 0.12f))
+                                        .padding(horizontal = 6.dp, vertical = 2.dp)
+                                ) {
+                                    Text(
+                                        text = if (isCred) "LOGIN" else "NOTE",
+                                        color = if (isCred) CyberTeal else IncognitoPurple,
+                                        fontSize = 8.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(10.dp))
+
+                            if (isCred) {
+                                // Login item fields
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Column {
+                                        Text("USERNAME", fontSize = 9.sp, color = GrayMuted, fontWeight = FontWeight.Bold)
+                                        Text(item.loginName, fontSize = 13.sp, color = WhiteSoft)
+                                    }
+                                    IconButton(
+                                        onClick = {
+                                            val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                                            val clip = ClipData.newPlainText("username", item.loginName)
+                                            clipboard.setPrimaryClip(clip)
+                                            Toast.makeText(context, "Username copied to clipboard", Toast.LENGTH_SHORT).show()
+                                        },
+                                        modifier = Modifier.size(24.dp)
+                                    ) {
+                                        Icon(Icons.Filled.ContentCopy, contentDescription = "Copy username", tint = GrayMuted, modifier = Modifier.size(14.dp))
+                                    }
+                                }
+
+                                Spacer(modifier = Modifier.height(8.dp))
+
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Column {
+                                        Text("PASSWORD", fontSize = 9.sp, color = GrayMuted, fontWeight = FontWeight.Bold)
+                                        Text(
+                                            text = if (isSecretVisible) item.secretValue else "••••••••••••",
+                                            fontSize = 13.sp,
+                                            color = if (isSecretVisible) WhiteSoft else GrayMuted,
+                                            fontFamily = if (isSecretVisible) FontFamily.Monospace else FontFamily.Default
+                                        )
+                                    }
+                                    Row {
+                                        IconButton(
+                                            onClick = {
+                                                val m = passwordVisible.toMutableMap()
+                                                m[item.id] = !isSecretVisible
+                                                passwordVisible = m
+                                            },
+                                            modifier = Modifier.size(24.dp)
+                                        ) {
+                                            Icon(
+                                                imageVector = if (isSecretVisible) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
+                                                contentDescription = "Show/Hide password",
+                                                tint = GrayMuted,
+                                                modifier = Modifier.size(14.dp)
+                                            )
+                                        }
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        IconButton(
+                                            onClick = {
+                                                val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                                                val clip = ClipData.newPlainText("password", item.secretValue)
+                                                clipboard.setPrimaryClip(clip)
+                                                Toast.makeText(context, "Password copied securely!", Toast.LENGTH_SHORT).show()
+                                            },
+                                            modifier = Modifier.size(24.dp)
+                                        ) {
+                                            Icon(Icons.Filled.ContentCopy, contentDescription = "Copy password", tint = GrayMuted, modifier = Modifier.size(14.dp))
+                                        }
+                                    }
+                                }
+                            } else {
+                                // Note item payload
+                                Surface(
+                                    color = ObsidianBg,
+                                    shape = RoundedCornerShape(8.dp),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Column(modifier = Modifier.padding(10.dp)) {
+                                        Text("SECRET CONTENT NOTES", fontSize = 9.sp, color = IncognitoPurple, fontWeight = FontWeight.Bold)
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Text(
+                                            text = if (isSecretVisible) item.secretValue else "••••••••••••••••••••••••••••••••",
+                                            fontSize = 12.sp,
+                                            color = if (isSecretVisible) WhiteSoft else GrayMuted,
+                                            lineHeight = 16.sp,
+                                            fontFamily = FontFamily.Monospace
+                                        )
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.End
+                                        ) {
+                                            IconButton(
+                                                onClick = {
+                                                    val m = passwordVisible.toMutableMap()
+                                                    m[item.id] = !isSecretVisible
+                                                    passwordVisible = m
+                                                },
+                                                modifier = Modifier.size(24.dp)
+                                            ) {
+                                                Icon(
+                                                    imageVector = if (isSecretVisible) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
+                                                    contentDescription = "Show/Hide note",
+                                                    tint = GrayMuted,
+                                                    modifier = Modifier.size(14.dp)
+                                                )
+                                            }
+                                            Spacer(modifier = Modifier.width(6.dp))
+                                            IconButton(
+                                                onClick = {
+                                                    val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                                                    val clip = ClipData.newPlainText("secret_note", item.secretValue)
+                                                    clipboard.setPrimaryClip(clip)
+                                                    Toast.makeText(context, "Secret note copied securely!", Toast.LENGTH_SHORT).show()
+                                                },
+                                                modifier = Modifier.size(24.dp)
+                                            ) {
+                                                Icon(Icons.Filled.ContentCopy, contentDescription = "Copy note", tint = GrayMuted, modifier = Modifier.size(14.dp))
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(10.dp))
+                            HorizontalDivider(color = BorderColor.copy(alpha = 0.5f))
+                            Spacer(modifier = Modifier.height(8.dp))
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(
-                                    "SECURED",
-                                    color = AdBlockGreen,
+                                    text = "Updated: " + SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()).format(Date(item.timestamp)),
                                     fontSize = 9.sp,
+                                    color = GrayMuted
+                                )
+                                TextButton(
+                                    onClick = { viewModel.deleteVaultItem(item.id) },
+                                    colors = ButtonDefaults.textButtonColors(contentColor = Color(0xFFEF4444)),
+                                    contentPadding = PaddingValues(0.dp),
+                                    modifier = Modifier.height(24.dp)
+                                ) {
+                                    Icon(Icons.Filled.Delete, contentDescription = "Delete", modifier = Modifier.size(12.dp))
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("Purge", fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    if (showAddDialog) {
+        AlertDialog(
+            onDismissRequest = { showAddDialog = false },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        if (titleInput.isNotBlank()) {
+                            viewModel.addVaultItem(entryType, titleInput.trim(), loginInput.trim(), secretInput.trim())
+                            showAddDialog = false
+                        } else {
+                            Toast.makeText(context, "Title is mandatory", Toast.LENGTH_SHORT).show()
+                        }
+                    },
+                    modifier = Modifier.testTag("save_vault_item_btn")
+                ) {
+                    Text("Save Securely", color = primaryThemeColor, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showAddDialog = false }) {
+                    Text("Cancel", color = GrayMuted)
+                }
+            },
+            title = {
+                Text("New Safe Vault Entry", color = WhiteSoft, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+            },
+            text = {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    // Type selector segment
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(BorderColor.copy(alpha = 0.4f), RoundedCornerShape(8.dp))
+                            .padding(2.dp)
+                    ) {
+                        listOf("credential" to "🔑 Login Card", "note" to "📜 Secret Note").forEach { (type, label) ->
+                            val active = entryType == type
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .background(if (active) primaryThemeColor else Color.Transparent)
+                                    .clickable { entryType = type }
+                                    .padding(vertical = 8.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    label,
+                                    color = if (active) Color.White else GrayMuted,
+                                    fontSize = 11.sp,
                                     fontWeight = FontWeight.Bold
                                 )
                             }
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(10.dp))
+                    OutlinedTextField(
+                        value = titleInput,
+                        onValueChange = { titleInput = it },
+                        modifier = Modifier.fillMaxWidth().testTag("vault_title_input"),
+                        label = { Text("Site/Note Title (e.g. ProtonMail)", fontSize = 11.sp, color = GrayMuted) },
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = WhiteSoft,
+                            unfocusedTextColor = WhiteSoft,
+                            focusedBorderColor = primaryThemeColor,
+                            unfocusedBorderColor = BorderColor
+                        ),
+                        singleLine = true
+                    )
 
-                    if (currentUserEmail != null) {
-                        // User is signed in
-                        Text(
-                            "Account ID (Email):",
-                            color = GrayMuted,
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Medium
-                        )
-                        Text(
-                            text = currentUserEmail,
-                            color = WhiteSoft,
-                            fontSize = 15.sp,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.padding(vertical = 4.dp).testTag("authenticated_user_email")
-                        )
-                        Spacer(modifier = Modifier.height(6.dp))
-                        Text(
-                            "You are successfully logged in! Your browser bookmarks, configurations and tabs can now sync under secure end-to-end cloud protection nodes.",
-                            color = GrayMuted,
-                            fontSize = 11.sp,
-                            lineHeight = 16.sp
-                        )
-                        Spacer(modifier = Modifier.height(12.dp))
-
-                        Button(
-                            onClick = onLogout,
-                            modifier = Modifier.fillMaxWidth().testTag("logout_account_btn"),
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFEF4444)), // Red signout
-                            shape = RoundedCornerShape(10.dp)
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(Icons.Filled.Logout, contentDescription = "Sign Out", tint = Color.White, modifier = Modifier.size(16.dp))
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text("Sign Out Sync Profile", fontWeight = FontWeight.Bold, color = Color.White)
-                            }
-                        }
-                    } else {
-                        // User is NOT signed in (Form Mode)
-                        Text(
-                            text = if (isRegisterMode) 
-                                "Create a free cloud account using Firebase Auth to keep your bookmarks and history synced across browsers." 
-                            else 
-                                "Log in with your email and password to connect with real Firebase Sync Nodes.",
-                            color = GrayMuted,
-                            fontSize = 11.sp,
-                            lineHeight = 16.sp
-                        )
-
-                        Spacer(modifier = Modifier.height(12.dp))
-
-                        // Email Field
+                    if (entryType == "credential") {
                         OutlinedTextField(
-                            value = authEmail,
-                            onValueChange = { authEmail = it },
-                            modifier = Modifier.fillMaxWidth().testTag("auth_email_input"),
-                            label = { Text("Email Address", color = GrayMuted, fontSize = 12.sp) },
-                            singleLine = true,
+                            value = loginInput,
+                            onValueChange = { loginInput = it },
+                            modifier = Modifier.fillMaxWidth().testTag("vault_username_input"),
+                            label = { Text("Login Username/Email/ID", fontSize = 11.sp, color = GrayMuted) },
                             colors = OutlinedTextFieldDefaults.colors(
-                                focusedContainerColor = ObsidianBg,
-                                unfocusedContainerColor = ObsidianBg,
                                 focusedTextColor = WhiteSoft,
                                 unfocusedTextColor = WhiteSoft,
                                 focusedBorderColor = primaryThemeColor,
                                 unfocusedBorderColor = BorderColor
                             ),
-                            shape = RoundedCornerShape(10.dp)
+                            singleLine = true
                         )
+                    }
 
-                        Spacer(modifier = Modifier.height(8.dp))
-
-                        // Password Field
-                        var showAuthPassword by remember { mutableStateOf(false) }
+                    Column(modifier = Modifier.fillMaxWidth()) {
                         OutlinedTextField(
-                            value = authPassword,
-                            onValueChange = { authPassword = it },
-                            modifier = Modifier.fillMaxWidth().testTag("auth_password_input"),
-                            label = { Text("Password", color = GrayMuted, fontSize = 12.sp) },
-                            singleLine = true,
-                            visualTransformation = if (showAuthPassword) VisualTransformation.None else PasswordVisualTransformation(),
-                            trailingIcon = {
-                                IconButton(onClick = { showAuthPassword = !showAuthPassword }) {
-                                    Icon(
-                                        imageVector = if (showAuthPassword) Icons.Filled.Visibility else Icons.Filled.VisibilityOff,
-                                        contentDescription = "Toggle password",
-                                        tint = GrayMuted
-                                    )
-                                }
-                            },
+                            value = secretInput,
+                            onValueChange = { secretInput = it },
+                            modifier = Modifier.fillMaxWidth().testTag("vault_secret_input"),
+                            label = { Text(if (entryType == "credential") "Password" else "Private Secret Payload", fontSize = 11.sp, color = GrayMuted) },
                             colors = OutlinedTextFieldDefaults.colors(
-                                focusedContainerColor = ObsidianBg,
-                                unfocusedContainerColor = ObsidianBg,
                                 focusedTextColor = WhiteSoft,
                                 unfocusedTextColor = WhiteSoft,
                                 focusedBorderColor = primaryThemeColor,
                                 unfocusedBorderColor = BorderColor
-                            ),
-                            shape = RoundedCornerShape(10.dp)
+                            )
                         )
 
-                        Spacer(modifier = Modifier.height(12.dp))
+                        Spacer(modifier = Modifier.height(4.dp))
 
-                        if (authLoading) {
-                            Box(
-                                modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                CircularProgressIndicator(color = primaryThemeColor, modifier = Modifier.size(24.dp))
-                            }
-                        } else {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                Button(
-                                    onClick = {
-                                        if (isRegisterMode) {
-                                            onSignup(authEmail, authPassword)
-                                        } else {
-                                            onLogin(authEmail, authPassword)
-                                        }
-                                    },
-                                    modifier = Modifier.weight(1f).testTag("auth_submit_btn"),
-                                    colors = ButtonDefaults.buttonColors(containerColor = primaryThemeColor),
-                                    shape = RoundedCornerShape(10.dp)
-                                ) {
-                                    Text(
-                                        text = if (isRegisterMode) "Create Account" else "Log In",
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                }
+                        // Military Passphrase generator
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                "Entropy Strength: " + when {
+                                    secretInput.length > 14 -> "🛡️ Military"
+                                    secretInput.length > 9 -> "✅ High"
+                                    secretInput.isEmpty() -> "Empty"
+                                    else -> "⚠️ Poor"
+                                },
+                                fontSize = 10.sp,
+                                color = if (secretInput.length > 14) AdBlockGreen else if (secretInput.length > 9) CyberTeal else Color.Red,
+                                fontWeight = FontWeight.Bold
+                            )
 
-                                Button(
-                                    onClick = { 
-                                        isRegisterMode = !isRegisterMode 
-                                        onDismissMessage()
-                                    },
-                                    modifier = Modifier.weight(1f).testTag("auth_toggle_mode_btn"),
-                                    colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent, contentColor = primaryThemeColor),
-                                    border = BorderStroke(1.dp, primaryThemeColor),
-                                    shape = RoundedCornerShape(10.dp)
-                                ) {
-                                    Text(
-                                        text = if (isRegisterMode) "Switch to Login" else "Create Account",
-                                        fontWeight = FontWeight.SemiBold,
-                                        fontSize = 11.sp
-                                    )
-                                }
+                            Button(
+                                onClick = {
+                                    secretInput = generateRandomPassword(generatedPasswordLength.toInt())
+                                },
+                                colors = ButtonDefaults.buttonColors(containerColor = CyberTeal),
+                                shape = RoundedCornerShape(6.dp),
+                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
+                                modifier = Modifier.height(28.dp).testTag("generator_generate_btn")
+                            ) {
+                                Text("Gen Secure", fontSize = 10.sp, color = Color.White)
                             }
                         }
-                    }
 
-                    // Display Error / Success Notifications cleanly
-                    if (authError != null) {
-                        Spacer(modifier = Modifier.height(10.dp))
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(Color(0xFFFEF2F2))
-                                .border(1.dp, Color(0xFFFCA5A5), RoundedCornerShape(8.dp))
-                                .padding(8.dp)
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(Icons.Filled.Error, contentDescription = "Error", tint = Color(0xFFEF4444), modifier = Modifier.size(16.dp))
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text(authError, color = Color(0xFF991B1B), fontSize = 11.sp, modifier = Modifier.weight(1f))
-                                IconButton(
-                                    onClick = onDismissMessage,
-                                    modifier = Modifier.size(16.dp)
-                                ) {
-                                    Icon(Icons.Filled.Close, contentDescription = "Dismiss", tint = Color(0xFF991B1B), modifier = Modifier.size(12.dp))
-                                }
-                            }
-                        }
-                    }
-
-                    if (authSuccess != null) {
-                        Spacer(modifier = Modifier.height(10.dp))
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(Color(0xFFECFDF5))
-                                .border(1.dp, Color(0xFF6EE7B7), RoundedCornerShape(8.dp))
-                                .padding(8.dp)
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(Icons.Filled.CheckCircle, contentDescription = "Success", tint = AdBlockGreen, modifier = Modifier.size(16.dp))
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text(authSuccess, color = Color(0xFF065F46), fontSize = 11.sp, modifier = Modifier.weight(1f))
-                                IconButton(
-                                    onClick = onDismissMessage,
-                                    modifier = Modifier.size(16.dp)
-                                ) {
-                                    Icon(Icons.Filled.Close, contentDescription = "Dismiss", tint = Color(0xFF065F46), modifier = Modifier.size(12.dp))
-                                }
-                            }
+                        // Length Slider
+                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                            Text("Len: ${generatedPasswordLength.toInt()}", fontSize = 9.sp, color = GrayMuted)
+                            Slider(
+                                value = generatedPasswordLength,
+                                onValueChange = { generatedPasswordLength = it },
+                                valueRange = 8f..32f,
+                                modifier = Modifier.weight(1f),
+                                colors = SliderDefaults.colors(
+                                    thumbColor = CyberTeal,
+                                    activeTrackColor = CyberTeal
+                                )
+                            )
                         }
                     }
                 }
-            }
-        }
-        // Explanatory Intro Card
+            },
+            shape = RoundedCornerShape(16.dp),
+            containerColor = CardBg
+        )
+    }
+}
+
+@Composable
+fun TrackingRadarSandboxView(
+    viewModel: BrowserViewModel,
+    adsBlockedCount: Int,
+    primaryThemeColor: Color
+) {
+    val selectedUaProfile by viewModel.selectedUserAgent.collectAsStateWithLifecycle()
+    val profiles by viewModel.userAgents.collectAsStateWithLifecycle()
+
+    val cookiesBlocked by viewModel.isThirdPartyCookiesBlocked.collectAsStateWithLifecycle()
+    val jsSandboxActive by viewModel.isJsSandboxEnabled.collectAsStateWithLifecycle()
+    val httpsForced by viewModel.isHttpsForced.collectAsStateWithLifecycle()
+
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        // Tracker Radar visual dashboard
         item {
             Card(
                 colors = CardDefaults.cardColors(containerColor = CardBg),
-                border = BorderStroke(1.dp, BorderColor),
                 shape = RoundedCornerShape(16.dp),
+                border = BorderStroke(1.dp, BorderColor),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = Icons.Filled.Fingerprint,
-                            contentDescription = "Zero-Knowledge",
-                            tint = CyberTeal,
-                            modifier = Modifier.size(24.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            "Zero-Knowledge Architecture",
-                            color = WhiteSoft,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 16.sp
-                        )
-                    }
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        "All of your navigation histories, bookmarks and session data are cryptographically encrypted on this device using an AES-256 key derived from your sync passphrase. " +
-                        "No plaintext data is ever sent over the network, ensuring complete user confidentiality across macOS, Windows, and Android.",
-                        color = GrayMuted,
-                        fontSize = 11.sp,
-                        lineHeight = 16.sp
-                    )
-                }
-            }
-        }
-
-        // Passphrase Setup Card
-        item {
-            Card(
-                colors = CardDefaults.cardColors(containerColor = CardBg),
-                border = BorderStroke(1.dp, BorderColor),
-                shape = RoundedCornerShape(14.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column(modifier = Modifier.padding(14.dp)) {
-                    Text(
-                        "SYNC PASSPHRASE",
-                        color = WhiteSoft,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 11.sp,
-                        letterSpacing = 0.5.sp
-                    )
-                    Spacer(modifier = Modifier.height(6.dp))
-                    Text(
-                        "Sets client-side Master AES encryption. If you clear this passphrase, data is decrypted into standard storage.",
-                        color = GrayMuted,
-                        fontSize = 10.sp
-                    )
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    OutlinedTextField(
-                        value = passphraseInput,
-                        onValueChange = { passphraseInput = it },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .testTag("passphrase_text_input"),
-                        label = { Text("Enter Passphrase", color = GrayMuted, fontSize = 12.sp) },
-                        visualTransformation = if (showPassphrase) VisualTransformation.None else PasswordVisualTransformation(),
-                        trailingIcon = {
-                            IconButton(onClick = { showPassphrase = !showPassphrase }) {
-                                Icon(
-                                    imageVector = if (showPassphrase) Icons.Filled.Visibility else Icons.Filled.VisibilityOff,
-                                    contentDescription = "Toggle visibility",
-                                    tint = GrayMuted
-                                )
-                            }
-                        },
-                        singleLine = true,
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedContainerColor = CardBg,
-                            unfocusedContainerColor = CardBg,
-                            focusedBorderColor = primaryThemeColor,
-                            unfocusedBorderColor = BorderColor,
-                            focusedTextColor = WhiteSoft,
-                            unfocusedTextColor = WhiteSoft
-                        ),
-                        shape = RoundedCornerShape(100.dp)
-                    )
-
-                    Spacer(modifier = Modifier.height(10.dp))
-
-                    Button(
-                        onClick = { onUpdatePassphrase(passphraseInput) },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .testTag("save_passphrase_btn"),
-                        colors = ButtonDefaults.buttonColors(containerColor = primaryThemeColor),
-                        shape = RoundedCornerShape(10.dp)
-                    ) {
-                        Text("Apply AES Encryption Key", fontWeight = FontWeight.Bold)
-                    }
-                }
-            }
-        }
-
-        // Cross-platform synchronization trigger card
-        item {
-            Card(
-                colors = CardDefaults.cardColors(containerColor = CardBg),
-                border = BorderStroke(1.dp, BorderColor),
-                shape = RoundedCornerShape(14.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column(modifier = Modifier.padding(14.dp)) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Column {
-                            Text(
-                                "CROSS-PLATFORM CLOUD SYNC",
-                                color = WhiteSoft,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 11.sp,
-                                letterSpacing = 0.5.sp
-                            )
-                            Text(
-                                "Keep database synced with macOS & Windows",
-                                color = GrayMuted,
-                                fontSize = 10.sp
-                            )
+                            Text("GUARD BLOCK INDEX", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = GrayMuted)
+                            Text("$adsBlockedCount Scripts Deflected", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = AdBlockGreen)
                         }
-                        Switch(
-                            checked = syncSettings.isCloudSyncEnabled,
-                            onCheckedChange = { onToggleCloudSync(it) },
-                            modifier = Modifier.testTag("cloud_sync_switch"),
-                            colors = SwitchDefaults.colors(
-                                checkedThumbColor = AdBlockGreen,
-                                checkedTrackColor = AdBlockGreen.copy(alpha = 0.3f)
-                            )
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    // Sync Status message box
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(ObsidianBg)
-                            .border(1.dp, BorderColor, RoundedCornerShape(8.dp))
-                            .padding(10.dp),
-                        contentAlignment = Alignment.CenterStart
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            if (isSyncing) {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.size(16.dp),
-                                    color = primaryThemeColor,
-                                    strokeWidth = 2.dp
-                                )
-                            } else {
-                                Icon(
-                                    imageVector = if (syncSettings.isCloudSyncEnabled) Icons.Filled.SyncAlt else Icons.Filled.SyncDisabled,
-                                    contentDescription = "Sync status",
-                                    tint = if (syncSettings.isCloudSyncEnabled) AdBlockGreen else GrayMuted,
-                                    modifier = Modifier.size(16.dp)
-                                )
-                            }
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = syncStatusText,
-                                color = if (isSyncing) primaryThemeColor else WhiteSoft,
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Medium
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    Button(
-                        onClick = onTriggerSyncNow,
-                        enabled = syncSettings.isCloudSyncEnabled && !isSyncing,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .testTag("trigger_sync_btn"),
-                        colors = ButtonDefaults.buttonColors(containerColor = AdBlockGreen),
-                        shape = RoundedCornerShape(10.dp)
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.Center
-                        ) {
-                            Icon(Icons.Filled.CloudSync, contentDescription = "Sync Now", tint = Color.White)
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text("Secure Sync All Devices", fontWeight = FontWeight.Black)
-                        }
-                    }
-
-                    if (syncSettings.lastSyncedTime > 0) {
-                        val lastSyncedFormatted = remember(syncSettings.lastSyncedTime) {
-                            val fmt = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
-                            fmt.format(Date(syncSettings.lastSyncedTime))
-                        }
-                        Spacer(modifier = Modifier.height(6.dp))
-                        Text(
-                            text = "Last Synced Successfully: $lastSyncedFormatted",
-                            color = GrayMuted,
-                            fontSize = 10.sp,
-                            modifier = Modifier.align(Alignment.CenterHorizontally)
-                        )
-                    }
-                }
-            }
-        }
-
-        // Active devices list section (macOS / Windows browser clients)
-        item {
-            Text(
-                "CONNECTED DEVICES (macOS / WINDOWS)",
-                color = WhiteSoft,
-                fontWeight = FontWeight.Bold,
-                fontSize = 11.sp,
-                letterSpacing = 0.5.sp
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-        }
-
-        items(otherDevices) { dev ->
-            Card(
-                colors = CardDefaults.cardColors(containerColor = CardBg),
-                border = BorderStroke(1.dp, BorderColor),
-                shape = RoundedCornerShape(10.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Row(
-                    modifier = Modifier.padding(12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
                         Box(
                             modifier = Modifier
-                                .size(34.dp)
-                                .clip(RoundedCornerShape(6.dp))
-                                .background(primaryThemeColor.copy(alpha = 0.15f)),
+                                .size(40.dp)
+                                .clip(CircleShape)
+                                .background(AdBlockGreen.copy(alpha = 0.12f)),
                             contentAlignment = Alignment.Center
                         ) {
-                            Icon(
-                                imageVector = if (dev.name.contains("macOS")) Icons.Filled.LaptopMac else Icons.Filled.Laptop,
-                                contentDescription = "Device icon",
-                                tint = primaryThemeColor,
-                                modifier = Modifier.size(18.dp)
-                            )
-                        }
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Column {
-                            Text(dev.name, color = WhiteSoft, fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                            Text(dev.type, color = GrayMuted, fontSize = 11.sp)
+                            Icon(Icons.Filled.Shield, contentDescription = null, tint = AdBlockGreen, modifier = Modifier.size(20.dp))
                         }
                     }
 
-                    Column(horizontalAlignment = Alignment.End) {
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(4.dp))
-                                .background(AdBlockGreen.copy(alpha = 0.15f))
-                                .padding(horizontal = 6.dp, vertical = 2.dp)
-                        ) {
-                            Text(dev.status, color = AdBlockGreen, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                    Spacer(modifier = Modifier.height(14.dp))
+                    HorizontalDivider(color = BorderColor)
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    Text("TRACKER RADAR BREAKDOWN", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = WhiteSoft)
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    // Deflected Tracker Categories list
+                    val categorisedData = listOf(
+                        Triple("Analytics & Telemetry", 0.40f, CyberTeal),
+                        Triple("Social Eavesdroppers", 0.25f, IncognitoPurple),
+                        Triple("Fingerprinters & Profilers", 0.20f, primaryThemeColor),
+                        Triple("Cryptominers & Hijackers", 0.15f, Color(0xFFF59E0B))
+                    )
+
+                    categorisedData.forEach { (catLabel, catShare, catColor) ->
+                        val amountBlocked = (adsBlockedCount * catShare).toInt()
+
+                        Column(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text(catLabel, fontSize = 11.sp, color = GrayMuted)
+                                Text("$amountBlocked Blocked", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = catColor)
+                            }
+                            Spacer(modifier = Modifier.height(4.dp))
+                            // Simple visual progress bar representing share of tracker blocks
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(6.dp)
+                                    .clip(RoundedCornerShape(3.dp))
+                                    .background(BorderColor.copy(alpha = 0.4f))
+                            ) {
+                                val progressVal = if (adsBlockedCount > 0) 1f else 0.5f // Default preview index
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth(catShare * progressVal)
+                                        .fillMaxHeight()
+                                        .clip(RoundedCornerShape(3.dp))
+                                        .background(catColor)
+                                )
+                            }
                         }
-                        Spacer(modifier = Modifier.height(2.dp))
-                        Text(dev.lastSeen, color = GrayMuted, fontSize = 10.sp)
                     }
                 }
             }
+        }
+
+        // Identity Spoofer Engine
+        item {
+            Card(
+                colors = CardDefaults.cardColors(containerColor = CardBg),
+                shape = RoundedCornerShape(16.dp),
+                border = BorderStroke(1.dp, BorderColor),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Filled.Fingerprint, contentDescription = null, tint = CyberTeal, modifier = Modifier.size(20.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("IDENTITY SPOOFER ENGINE", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = WhiteSoft)
+                    }
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        "Alter your browser identity header dynamically to bypass tracker correlation models and fingerprinters.",
+                        fontSize = 11.sp,
+                        color = GrayMuted,
+                        lineHeight = 16.sp
+                    )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        profiles.forEach { profile ->
+                            val isSel = selectedUaProfile.name == profile.name
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .background(if (isSel) CyberTeal.copy(alpha = 0.12f) else Color.Transparent)
+                                    .border(1.dp, if (isSel) CyberTeal else BorderColor, RoundedCornerShape(10.dp))
+                                    .clickable { viewModel.selectUserAgent(profile) }
+                                    .padding(12.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = profile.name,
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (isSel) CyberTeal else WhiteSoft
+                                    )
+                                    Spacer(modifier = Modifier.height(2.dp))
+                                    Text(
+                                        text = profile.value,
+                                        fontSize = 9.sp,
+                                        color = GrayMuted,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
+                                Box(
+                                    modifier = Modifier
+                                        .size(16.dp)
+                                        .clip(CircleShape)
+                                        .border(2.dp, if (isSel) CyberTeal else GrayMuted, CircleShape)
+                                        .background(if (isSel) CyberTeal else Color.Transparent)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Strict Cookies and JS Sandboxing controls
+        item {
+            Card(
+                colors = CardDefaults.cardColors(containerColor = CardBg),
+                shape = RoundedCornerShape(16.dp),
+                border = BorderStroke(1.dp, BorderColor),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Filled.SettingsInputHdmi, contentDescription = null, tint = IncognitoPurple, modifier = Modifier.size(20.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("SANDBOX DIRECTIVES", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = WhiteSoft)
+                    }
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // Toggle 1: Block Cookies
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("Block Third-Party Cookies", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = WhiteSoft)
+                            Text("Bypasses advertising cross-site storage correlations", fontSize = 10.sp, color = GrayMuted)
+                        }
+                        Switch(
+                            checked = cookiesBlocked,
+                            onCheckedChange = { viewModel.toggleThirdPartyCookies(it) },
+                            colors = SwitchDefaults.colors(checkedThumbColor = CyberTeal, checkedTrackColor = CyberTeal.copy(alpha = 0.5f))
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+                    HorizontalDivider(color = BorderColor.copy(alpha = 0.5f))
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    // Toggle 2: JS Sandbox
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("Strict JavaScript Sandbox", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = WhiteSoft)
+                            Text("Runs JavaScript engines under isolated volatile sandbox models", fontSize = 10.sp, color = GrayMuted)
+                        }
+                        Switch(
+                            checked = jsSandboxActive,
+                            onCheckedChange = { viewModel.toggleJsSandbox(it) },
+                            colors = SwitchDefaults.colors(checkedThumbColor = CyberTeal, checkedTrackColor = CyberTeal.copy(alpha = 0.5f))
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+                    HorizontalDivider(color = BorderColor.copy(alpha = 0.5f))
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    // Toggle 3: Force HTTPS
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("Force HTTPS Protocol", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = WhiteSoft)
+                            Text("Bridges standard HTTP addresses safely to TLS nodes", fontSize = 10.sp, color = GrayMuted)
+                        }
+                        Switch(
+                            checked = httpsForced,
+                            onCheckedChange = { viewModel.toggleHttpsForced(it) },
+                            colors = SwitchDefaults.colors(checkedThumbColor = CyberTeal, checkedTrackColor = CyberTeal.copy(alpha = 0.5f))
+                        )
+                    }
+                }
+            }
+        }
+
+        item {
+            Spacer(modifier = Modifier.height(20.dp))
         }
     }
 }

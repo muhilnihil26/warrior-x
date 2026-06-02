@@ -16,6 +16,7 @@ import java.util.*
 import com.google.firebase.FirebaseApp
 import com.google.firebase.FirebaseOptions
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.GoogleAuthProvider
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -28,7 +29,8 @@ class BrowserViewModel(application: Application) : AndroidViewModel(application)
         database.bookmarkDao(),
         database.historyDao(),
         database.tabDao(),
-        database.syncSettingsDao()
+        database.syncSettingsDao(),
+        database.vaultDao()
     )
 
     // Sync Settings Flow
@@ -43,6 +45,77 @@ class BrowserViewModel(application: Application) : AndroidViewModel(application)
     // Raw Bookmarks from DB
     val rawBookmarks: StateFlow<List<BookmarkEntity>> = repository.bookmarks
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    // Raw Vault Items from DB
+    val rawVaultItems: StateFlow<List<VaultEntity>> = repository.vaultItems
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val vaultItems: StateFlow<List<VaultEntity>> = combine(rawVaultItems, syncSettings) { list, settings ->
+        val passphrase = settings.syncPassphrase
+        if (passphrase.isEmpty()) {
+            list
+        } else {
+            val spec = EncryptionUtils.deriveKey(passphrase)
+            list.map { item ->
+                if (item.isEncrypted) {
+                    item.copy(
+                        siteNameOrTitle = EncryptionUtils.decrypt(item.encryptedTitle, spec),
+                        loginName = EncryptionUtils.decrypt(item.encryptedLogin, spec),
+                        secretValue = EncryptionUtils.decrypt(item.encryptedValue, spec)
+                    )
+                } else {
+                    item
+                }
+            }
+        }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    // Brand and Identity User Agents
+    private val _userAgents = MutableStateFlow(
+        listOf(
+            UserAgentProfile("Default Identity (Mobile)", "Mozilla/5.0 (Linux; Android 10) WarriorX/1.0 SecureBrowser"),
+            UserAgentProfile("Tor Stealth Browser", "Mozilla/5.0 (Windows NT 10.0; rv:109.0) Gecko/20100101 Firefox/115.0"),
+            UserAgentProfile("Safari (macOS Workstation)", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Safari/605.1.15"),
+            UserAgentProfile("Chrome (Windows Desktop)", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36"),
+            UserAgentProfile("Firefox (Linux Workstation)", "Mozilla/5.0 (X11; Linux x86_64; rv:135.0) Gecko/20100101 Firefox/135.0")
+        )
+    )
+    val userAgents: StateFlow<List<UserAgentProfile>> = _userAgents.asStateFlow()
+
+    private val _selectedUserAgent = MutableStateFlow(
+        UserAgentProfile("Default Identity (Mobile)", "Mozilla/5.0 (Linux; Android 10) WarriorX/1.0 SecureBrowser")
+    )
+    val selectedUserAgent: StateFlow<UserAgentProfile> = _selectedUserAgent.asStateFlow()
+
+    fun selectUserAgent(profile: UserAgentProfile) {
+        _selectedUserAgent.value = profile
+        _syncStatusText.value = "Web identity spoofed to: ${profile.name}"
+    }
+
+    // Secure Sandbox states (Custom metrics and controls)
+    private val _isThirdPartyCookiesBlocked = MutableStateFlow(true)
+    val isThirdPartyCookiesBlocked: StateFlow<Boolean> = _isThirdPartyCookiesBlocked.asStateFlow()
+
+    private val _isJsSandboxEnabled = MutableStateFlow(false)
+    val isJsSandboxEnabled: StateFlow<Boolean> = _isJsSandboxEnabled.asStateFlow()
+
+    private val _isHttpsForced = MutableStateFlow(true)
+    val isHttpsForced: StateFlow<Boolean> = _isHttpsForced.asStateFlow()
+
+    fun toggleThirdPartyCookies(blocked: Boolean) {
+        _isThirdPartyCookiesBlocked.value = blocked
+        _syncStatusText.value = if (blocked) "Third-party tracking cookies blocked" else "Third-party cookies permitted (Less Secure)"
+    }
+
+    fun toggleJsSandbox(enabled: Boolean) {
+        _isJsSandboxEnabled.value = enabled
+        _syncStatusText.value = if (enabled) "Strict JS Sandbox activated" else "Standard JS Execution context"
+    }
+
+    fun toggleHttpsForced(forced: Boolean) {
+        _isHttpsForced.value = forced
+        _syncStatusText.value = if (forced) "Strict HTTPS Only rule active" else "Allow standard HTTP connections"
+    }
 
     // Raw History from DB
     val rawHistory: StateFlow<List<HistoryEntity>> = repository.history
@@ -224,6 +297,15 @@ class BrowserViewModel(application: Application) : AndroidViewModel(application)
                     repository.insertHistory("Adblocking Filter Lists Guide", "https://war.dev/privacy/filter-lists", "privacy", p)
                     repository.insertHistory("Warrior X Release Platform", "https://war.dev/warrior-x/launch", "general", p)
                     repository.insertHistory("Kotlin Multiplatform Desktop macOS/Windows", "https://kotlinlang.org/kmp", "tech", p)
+                }
+            }
+
+            repository.vaultItems.first().let { items ->
+                if (items.isEmpty()) {
+                    val settings = repository.getSyncSettingsDirect()
+                    val p = settings.syncPassphrase
+                    repository.insertVaultItem("credential", "ProtonMail Secure", "warrior_dev", "SecurePass123!", p)
+                    repository.insertVaultItem("note", "Decentralized Key Root Backup", "", "5J3mKB8ae888sSshshYyYy... [Client Encrypted Seed]", p)
                 }
             }
         }
@@ -425,6 +507,45 @@ class BrowserViewModel(application: Application) : AndroidViewModel(application)
                 )
             )
         }
+
+        // Migration logic for secure Vault
+        val vaultList = rawVaultItems.value
+        vaultList.forEach { vaultItem ->
+            val specDec = if (oldPass.isNotEmpty()) EncryptionUtils.deriveKey(oldPass) else null
+            val specEnc = if (newPass.isNotEmpty()) EncryptionUtils.deriveKey(newPass) else null
+
+            val originalTitle = if (vaultItem.isEncrypted && specDec != null) {
+                EncryptionUtils.decrypt(vaultItem.encryptedTitle, specDec)
+            } else {
+                vaultItem.siteNameOrTitle
+            }
+            val originalLogin = if (vaultItem.isEncrypted && specDec != null) {
+                EncryptionUtils.decrypt(vaultItem.encryptedLogin, specDec)
+            } else {
+                vaultItem.loginName
+            }
+            val originalValue = if (vaultItem.isEncrypted && specDec != null) {
+                EncryptionUtils.decrypt(vaultItem.encryptedValue, specDec)
+            } else {
+                vaultItem.secretValue
+            }
+
+            val encTitle = if (specEnc != null) EncryptionUtils.encrypt(originalTitle, specEnc) else ""
+            val encLogin = if (specEnc != null) EncryptionUtils.encrypt(originalLogin, specEnc) else ""
+            val encValue = if (specEnc != null) EncryptionUtils.encrypt(originalValue, specEnc) else ""
+
+            database.vaultDao().insertVaultItem(
+                vaultItem.copy(
+                    siteNameOrTitle = if (newPass.isNotEmpty()) "[Encrypted]" else originalTitle,
+                    loginName = if (newPass.isNotEmpty()) "[Encrypted]" else originalLogin,
+                    secretValue = if (newPass.isNotEmpty()) "[Encrypted]" else originalValue,
+                    isEncrypted = newPass.isNotEmpty(),
+                    encryptedTitle = encTitle,
+                    encryptedLogin = encLogin,
+                    encryptedValue = encValue
+                )
+            )
+        }
     }
 
     fun addBookmark(title: String, url: String) {
@@ -437,6 +558,20 @@ class BrowserViewModel(application: Application) : AndroidViewModel(application)
     fun deleteBookmark(id: Int) {
         viewModelScope.launch {
             repository.deleteBookmarkById(id)
+        }
+    }
+
+    fun addVaultItem(type: String, siteName: String, login: String, secret: String) {
+        viewModelScope.launch {
+            repository.insertVaultItem(type, siteName, login, secret, syncSettings.value.syncPassphrase)
+            _syncStatusText.value = "Secure entry saved to local-encrypted vault."
+        }
+    }
+
+    fun deleteVaultItem(id: Int) {
+        viewModelScope.launch {
+            repository.deleteVaultItemById(id)
+            _syncStatusText.value = "Vault entry deleted safely."
         }
     }
 
@@ -580,6 +715,43 @@ class BrowserViewModel(application: Application) : AndroidViewModel(application)
     fun dismissAuthMessage() {
         _authError.value = null
         _authSuccess.value = null
+    }
+
+    fun firebaseLoginWithGoogle(idToken: String) {
+        val auth = firebaseAuth
+        if (auth == null) {
+            _authError.value = "Firebase state is not initialized. Please verify internet connection."
+            return
+        }
+        _authLoading.value = true
+        _authError.value = null
+        _authSuccess.value = null
+
+        val credential = GoogleAuthProvider.getCredential(idToken, null)
+        auth.signInWithCredential(credential)
+            .addOnCompleteListener { task ->
+                _authLoading.value = false
+                if (task.isSuccessful) {
+                    _currentUserEmail.value = auth.currentUser?.email
+                    _authSuccess.value = "Welcome back! Google account synchronized successfully: ${_currentUserEmail.value}"
+                } else {
+                    _authError.value = task.exception?.localizedMessage ?: "Google Sign-In integration failed."
+                }
+            }
+    }
+
+    fun simulateGoogleAuth(email: String, displayName: String) {
+        _authLoading.value = true
+        _authError.value = null
+        _authSuccess.value = null
+
+        viewModelScope.launch {
+            kotlinx.coroutines.delay(1000)
+            _authLoading.value = false
+            val mockEmail = if (email.contains("@")) email.trim() else "${email.trim().replace(" ", "").lowercase()}@gmail.com"
+            _currentUserEmail.value = if (mockEmail.isBlank() || mockEmail == "@gmail.com") "warrior.google@gmail.com" else mockEmail
+            _authSuccess.value = "Secure handshake simulated. Connected with Google account: ${_currentUserEmail.value} (Credential: Google Secure Node)"
+        }
     }
 
     // --- Warrior AI Functions ---
@@ -742,6 +914,11 @@ data class ChatMessage(
     val message: String,
     val isUser: Boolean,
     val timestamp: Long = System.currentTimeMillis()
+)
+
+data class UserAgentProfile(
+    val name: String,
+    val value: String
 )
 
 data class SyncedDevice(

@@ -9,12 +9,56 @@ class BrowserRepository(
     private val bookmarkDao: BookmarkDao,
     private val historyDao: HistoryDao,
     private val tabDao: TabDao,
-    private val syncSettingsDao: SyncSettingsDao
+    private val syncSettingsDao: SyncSettingsDao,
+    private val vaultDao: VaultDao
 ) {
     val bookmarks: Flow<List<BookmarkEntity>> = bookmarkDao.getAllBookmarks()
     val history: Flow<List<HistoryEntity>> = historyDao.getAllHistory()
     val tabs: Flow<List<TabEntity>> = tabDao.getAllTabs()
     val syncSettings: Flow<SyncSettingsEntity?> = syncSettingsDao.getSyncSettings()
+    val vaultItems: Flow<List<VaultEntity>> = vaultDao.getAllVaultItems()
+
+    suspend fun insertVaultItem(
+        type: String,
+        siteName: String,
+        login: String,
+        secret: String,
+        passphrase: String
+    ) = withContext(Dispatchers.IO) {
+        val hasPassphrase = passphrase.isNotEmpty()
+        val (encTitle, encLogin, encValue) = if (hasPassphrase) {
+            val spec = EncryptionUtils.deriveKey(passphrase)
+            Triple(
+                EncryptionUtils.encrypt(siteName, spec),
+                EncryptionUtils.encrypt(login, spec),
+                EncryptionUtils.encrypt(secret, spec)
+            )
+        } else {
+            Triple("", "", "")
+        }
+
+        vaultDao.insertVaultItem(
+            VaultEntity(
+                type = type,
+                siteNameOrTitle = if (hasPassphrase) "[Encrypted]" else siteName,
+                loginName = if (hasPassphrase) "[Encrypted]" else login,
+                secretValue = if (hasPassphrase) "[Encrypted]" else secret,
+                isEncrypted = hasPassphrase,
+                encryptedTitle = encTitle,
+                encryptedLogin = encLogin,
+                encryptedValue = encValue,
+                timestamp = System.currentTimeMillis()
+            )
+        )
+    }
+
+    suspend fun deleteVaultItemById(id: Int) = withContext(Dispatchers.IO) {
+        vaultDao.deleteVaultItemById(id)
+    }
+
+    suspend fun clearAllVaultItems() = withContext(Dispatchers.IO) {
+        vaultDao.clearAllVaultItems()
+    }
 
     suspend fun insertBookmark(title: String, url: String, passphrase: String) = withContext(Dispatchers.IO) {
         val hasPassphrase = passphrase.isNotEmpty()

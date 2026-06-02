@@ -74,3 +74,19 @@ interface SyncSettingsDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertOrUpdateSyncSettings(settings: SyncSettingsEntity)
 }
+
+@Dao
+interface VaultDao {
+    @Query("SELECT * FROM secure_vault ORDER BY timestamp DESC")
+    fun getAllVaultItems(): Flow<List<VaultEntity>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertVaultItem(item: VaultEntity)
+
+    @Query("DELETE FROM secure_vault WHERE id = :id")
+    suspend fun deleteVaultItemById(id: Int)
+
+    @Query("DELETE FROM secure_vault")
+    suspend fun clearAllVaultItems()
+}
+
