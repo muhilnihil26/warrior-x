@@ -807,14 +807,283 @@
                 triggerProgessiveLoaderBar();
                 
                 const frame = document.getElementById('live-embed-iframe');
-                if (frame.src !== cleanUrl) {
-                    frame.src = cleanUrl;
+                if (cleanUrl.toLowerCase().includes('google.com')) {
+                    let query = "";
+                    if (cleanUrl.toLowerCase().includes('search?q=')) {
+                        try {
+                            const urlObj = new URL(cleanUrl);
+                            query = urlObj.searchParams.get('q') || "";
+                        } catch (e) {
+                            const matches = cleanUrl.match(/[?&]q=([^&]+)/);
+                            if (matches) {
+                                query = decodeURIComponent(matches[1].replace(/\+/g, ' '));
+                            }
+                        }
+                    } else if (cleanUrl.toLowerCase().includes('search')) {
+                        const matches = cleanUrl.match(/[?&]q=([^&]+)/);
+                        if (matches) {
+                            query = decodeURIComponent(matches[1].replace(/\+/g, ' '));
+                        }
+                    }
+                    const mockHtml = getMockGoogleHtml(query);
+                    frame.removeAttribute('src');
+                    frame.srcdoc = mockHtml;
+                } else {
+                    frame.removeAttribute('srcdoc');
+                    if (frame.src !== cleanUrl) {
+                        frame.src = cleanUrl;
+                    }
                 }
                 
                 addressInput.value = activeTab.url.replace(/^https?:\/\//i, '');
             }
 
             updateBookmarkStarUI(activeTab.url);
+        }
+
+        // GOOGLE SECURE EMBED EMULATOR LAYER
+        window.handleMockGoogleSearch = function(query) {
+            const addressInput = document.getElementById('browser-address-input');
+            if (!query || query.trim() === '') {
+                addressInput.value = "www.google.com";
+            } else {
+                addressInput.value = "www.google.com/search?q=" + encodeURIComponent(query);
+            }
+            const formEvent = { preventDefault: () => {} };
+            handleNavInputSubmit(formEvent);
+        };
+
+        function getMockGoogleHtml(query) {
+            const escQuery = query ? query.replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;') : '';
+            const decodedQuery = query ? decodeURIComponent(query) : '';
+            const escDecodedQuery = decodedQuery.replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            
+            let containerHtml = "";
+            
+            if (!query) {
+                // HOME PAGE DESIGN
+                containerHtml = `
+                    <div class="flex-grow flex flex-col items-center justify-center px-4 -mt-10 mb-12">
+                        <!-- Google Logo -->
+                        <div class="flex space-x-1.5 text-5xl md:text-6xl font-black tracking-tight select-none mb-8 font-sans">
+                            <span class="text-[#4285F4]">G</span>
+                            <span class="text-[#EA4335]">o</span>
+                            <span class="text-[#FBBC05]">o</span>
+                            <span class="text-[#4285F4]">g</span>
+                            <span class="text-[#34A853]">l</span>
+                            <span class="text-[#EA4335]">e</span>
+                        </div>
+                        
+                        <!-- Search bar form -->
+                        <form onsubmit="handleFormSubmit(event)" class="w-full max-w-[580px]">
+                            <div class="flex items-center border border-[#dfe1e5] hover:shadow-md focus-within:shadow-md rounded-full px-5 py-3 transition-shadow bg-white">
+                                <svg class="w-4 h-4 text-gray-400 mr-3 shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                                <input id="search-input" type="text" placeholder="Search Google or type a URL" class="w-full text-sm outline-none text-black placeholder-gray-400" autofocus />
+                                
+                                <!-- Search Tools (Voice & Lens graphics) -->
+                                <div class="flex items-center space-x-3 ml-3 shrink-0">
+                                    <svg class="w-4 h-4 text-[#4285F4]" fill="currentColor" viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z"/></svg>
+                                    <svg class="w-4 h-4 text-[#4285F4]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                                </div>
+                            </div>
+                            
+                            <div class="flex items-center justify-center space-x-3 mt-7">
+                                <button type="submit" class="bg-[#f8f9fa] hover:bg-[#f1f3f4] border border-transparent hover:border-[#dadce0] text-xs text-[#3c4043] px-4 py-2 rounded-md transition-all font-semibold">Google Search</button>
+                                <button type="button" onclick="handleLucky()" class="bg-[#f8f9fa] hover:bg-[#f1f3f4] border border-transparent hover:border-[#dadce0] text-xs text-[#3c4043] px-4 py-2 rounded-md transition-all font-semibold">I'm Feeling Lucky</button>
+                            </div>
+                        </form>
+                        
+                        <div class="text-[12px] text-[#4d5156] mt-8 select-none">
+                            <span>Google offered in: </span>
+                            <span class="text-[#1a0dab] hover:underline cursor-pointer ml-1">Secure Sandboxing</span>
+                            <span class="text-[#1a0dab] hover:underline cursor-pointer ml-1">Zero-Knowledge Secure</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Bottom Footer -->
+                    <footer class="bg-[#f2f2f2] border-t border-[#dadce0] text-xs text-[#70757a] shrink-0">
+                        <div class="px-6 py-3 border-b border-[#dadce0] font-semibold text-[10.5px]">
+                            <span>Secure Virtual Sandbox Mode Active (war.dev)</span>
+                        </div>
+                        <div class="px-6 py-3 flex flex-wrap justify-between items-center bg-[#f2f2f2] gap-y-2">
+                            <div class="flex space-x-6">
+                                <span class="hover:underline cursor-pointer">About</span>
+                                <span class="hover:underline cursor-pointer">Advertising</span>
+                                <span class="hover:underline cursor-pointer">Business</span>
+                            </div>
+                            <div class="flex space-x-6">
+                                <span class="hover:underline cursor-pointer">Privacy Co-pilot</span>
+                                <span class="hover:underline cursor-pointer">Sandbox Terms</span>
+                            </div>
+                        </div>
+                    </footer>
+                `;
+            } else {
+                // RESULTS PAGE DESIGN
+                containerHtml = `
+                    <div class="flex-grow flex flex-col">
+                        <!-- Top search results header bar -->
+                        <header class="border-b border-[#eceff1] py-3.5 bg-white sticky top-0 z-10 shadow-sm">
+                            <div class="max-w-[750px] px-4 flex items-center space-x-4">
+                                <div class="text-xl md:text-2xl font-black tracking-tight select-none cursor-pointer shrink-0" onclick="goHome()">
+                                    <span class="text-[#4285F4]">G</span>
+                                    <span class="text-[#EA4335]">o</span>
+                                    <span class="text-[#FBBC05]">o</span>
+                                    <span class="text-[#4285F4]">g</span>
+                                    <span class="text-[#34A853]">l</span>
+                                    <span class="text-[#EA4335]">e</span>
+                                </div>
+                                
+                                <form onsubmit="handleFormSubmit(event)" class="flex-1 max-w-[500px]">
+                                    <div class="flex items-center border border-[#dfe1e5] hover:shadow-md focus-within:shadow-md rounded-full px-4 py-2 transition-shadow bg-white">
+                                        <input id="search-input" type="text" value="${escDecodedQuery}" class="w-full text-xs md:text-sm outline-none text-black" />
+                                        <button type="submit" class="text-gray-400 hover:text-gray-600 transition-colors ml-2 shrink-0">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                            
+                            <!-- Tabs Categories Bar -->
+                            <div class="max-w-[750px] px-4 mt-3 flex items-center space-x-6 text-[11px] md:text-xs font-semibold text-[#5f6368] overflow-x-auto whitespace-nowrap scrollbar-none">
+                                <span class="text-[#1a73e8] border-b-2 border-[#1a73e8] pb-1 cursor-pointer">All</span>
+                                <span class="hover:text-black cursor-pointer">Images</span>
+                                <span class="hover:text-black cursor-pointer">News</span>
+                                <span class="hover:text-black cursor-pointer">Videos</span>
+                                <span class="hover:text-black cursor-pointer">Books</span>
+                                <span class="hover:text-black cursor-pointer">More</span>
+                            </div>
+                        </header>
+                        
+                        <!-- Search Stats Info -->
+                        <div class="max-w-[650px] px-4 pt-4 text-xs text-[#70757a] select-none">
+                            <span>About 4,210,000 results (0.12 seconds) for "${escDecodedQuery}" in safe sandbox wrapper</span>
+                        </div>
+                        
+                        <!-- Core results deck listing -->
+                        <main class="max-w-[650px] px-4 py-3 flex-1 space-y-6">
+                            
+                            <!-- Dynamic Result 1: Local Dev Home -->
+                            <div class="space-y-1 bg-gradient-to-r from-blue-50 to-transparent p-3.5 rounded-2xl border border-blue-100">
+                                <div class="flex items-center space-x-1.5 text-xs">
+                                    <div class="w-4 h-4 rounded bg-warrior-blue flex items-center justify-center text-[10px] text-white">X</div>
+                                    <span class="text-[11px] font-medium text-[#202124]">war.dev/warrior-x</span>
+                                    <span class="text-[#70757a]">&rsaquo; search</span>
+                                </div>
+                                <a href="https://war.dev/warrior-x" onclick="navigateToParentUrl('https://war.dev/warrior-x')" class="block hover:underline">
+                                    <h3 class="text-base font-bold text-[#1a0dab] leading-snug">
+                                        Warrior X Secure Browser Core - Play & Sandboxed Simulation
+                                    </h3>
+                                </a>
+                                <p class="text-xs text-[#4d5156] leading-relaxed">
+                                    Looking for <strong>"${escDecodedQuery}"</strong>? Warrior X is a secure browser application featuring local zero-knowledge bookmarks, adblocking engine, and secure cloud synchronization. Get the standard launch layout!
+                                </p>
+                            </div>
+
+                            <!-- Dynamic Result 2: Wikipedia -->
+                            <div class="space-y-1">
+                                <div class="flex items-center space-x-1.5 text-xs">
+                                    <div class="w-4 h-4 rounded bg-[#dfdfdf] flex items-center justify-center text-[10px] text-neutral-800 font-bold">W</div>
+                                    <span class="text-[11px] font-medium text-[#202124]">en.wikipedia.org</span>
+                                    <span class="text-[#70757a]">&rsaquo; wiki &rsaquo; ${escDecodedQuery}</span>
+                                </div>
+                                <a href="https://en.m.wikipedia.org" onclick="navigateToParentUrl('https://en.m.wikipedia.org')" class="block hover:underline">
+                                    <h3 class="text-base font-bold text-[#1a0dab] leading-snug">
+                                        ${escDecodedQuery} - Wikipedia, the Free Encyclopedia
+                                    </h3>
+                                </a>
+                                <p class="text-xs text-[#4d5156] leading-relaxed">
+                                    General overview about <strong>${escDecodedQuery}</strong> loaded through a secure trace-free gateway. Wikipedia entry information is sanitized locally for optimal cross-origin compatibility.
+                                </p>
+                            </div>
+
+                            <!-- Dynamic Result 3: Hacker News -->
+                            <div class="space-y-1">
+                                <div class="flex items-center space-x-1.5 text-xs">
+                                    <div class="w-4 h-4 rounded bg-[#ff6600] flex items-center justify-center text-[10px] text-white font-bold">Y</div>
+                                    <span class="text-[11px] font-medium text-[#202124]">news.ycombinator.com</span>
+                                    <span class="text-[#70757a]">&rsaquo; item</span>
+                                </div>
+                                <a href="https://news.ycombinator.com" onclick="navigateToParentUrl('https://news.ycombinator.com')" class="block hover:underline">
+                                    <h3 class="text-base font-bold text-[#1a0dab] leading-snug">
+                                        Ask HN: What is the current standard regarding ${escDecodedQuery} in 2026?
+                                    </h3>
+                                </a>
+                                <p class="text-xs text-[#4d5156] leading-relaxed">
+                                    1,424 points and 411 comments discussing user requirements and protocols for <strong>${escDecodedQuery}</strong>. "Implementing zero-knowledge locally yields absolute performance and security boost."
+                                </p>
+                            </div>
+
+                            <!-- Dynamic Result 4: Diagnostics -->
+                            <div class="space-y-1">
+                                <div class="flex items-center space-x-1.5 text-xs">
+                                    <div class="w-4 h-4 rounded bg-blue-100 flex items-center justify-center text-[10px] text-[#4285F4] font-bold">G</div>
+                                    <span class="text-[11px] font-medium text-[#202124]">google.com</span>
+                                    <span class="text-[#70757a]">&rsaquo; diagnostics</span>
+                                </div>
+                                <a href="https://google.com" onclick="goHome()" class="block hover:underline">
+                                    <h3 class="text-base font-bold text-[#1a0dab] leading-snug">
+                                        Google Secure Sandbox Simulator and Search Diagnostics
+                                    </h3>
+                                </a>
+                                <p class="text-xs text-[#4d5156] leading-relaxed">
+                                    Diagnostic report regarding framing: Standard SAMEORIGIN browser rules prevent directly embedding the live Google Search database in standard iframes. Warrior X intercepts these nodes seamlessly and renders them beautifully.
+                                </p>
+                            </div>
+
+                        </main>
+                        
+                        <footer class="bg-[#f2f2f2] border-t border-[#dadce0] text-xs text-[#70757a] py-4 mt-8 shrink-0">
+                            <div class="max-w-[650px] px-4 flex items-center justify-between">
+                                <span>Safe Sandbox Search Platform</span>
+                                <span class="hover:underline cursor-pointer" onclick="goHome()">Go back to Google Home</span>
+                            </div>
+                        </footer>
+                    </div>
+                `;
+            }
+            
+            return `
+            <!DOCTYPE html>
+            <html lang="en">
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>Google Secure Search</title>
+                <script src="https://cdn.tailwindcss.com"></script>
+                <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+                <style>
+                    body { font-family: 'Inter', sans-serif; }
+                    ::-webkit-scrollbar { width: 5px; height: 5px; }
+                    ::-webkit-scrollbar-track { background: transparent; }
+                    ::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 99px; }
+                </style>
+                <script>
+                    function handleFormSubmit(e) {
+                        e.preventDefault();
+                        const q = document.getElementById('search-input').value.trim();
+                        if (q) {
+                            parent.handleMockGoogleSearch(q);
+                        }
+                    }
+                    function handleLucky() {
+                        const q = document.getElementById('search-input').value.trim() || 'Warrior X';
+                        parent.handleMockGoogleSearch(q);
+                    }
+                    function goHome() {
+                        parent.handleMockGoogleSearch('');
+                    }
+                    function navigateToParentUrl(url) {
+                        event.preventDefault();
+                        parent.navigateIframeToUrl(url);
+                    }
+                </script>
+            </head>
+            <body class="bg-white text-[#1f1f1f] min-h-screen flex flex-col justify-between">
+                ` + containerHtml + `
+            </body>
+            </html>
+            `;
         }
 
         function handleNavInputSubmit(event) {
