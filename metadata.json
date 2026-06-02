@@ -1,0 +1,6 @@
+{
+  "name": "Warrior X Browser",
+  "description": "A secure, ultra-fast web browser featuring zero-knowledge encryption, built-in ad blocking, tab management, cross-device sync, and a local XML recommendation engine.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
