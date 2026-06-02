@@ -50,9 +50,9 @@ object XmlRecommendationEngine {
         <description>The ultimate privacy-first browser arrives with localized adblockers and encrypted local databases.</description>
     </item>
     <item category="general">
-        <title>[General] DuckDuckGo vs. Brave Search</title>
-        <url>https://duckduckgo.com</url>
-        <description>An independent comparison of user privacy models in today's search indexing.</description>
+        <title>[General] Google Search indexing standard</title>
+        <url>https://google.com</url>
+        <description>Leveraging Google's supreme search database with our local zero-knowledge secure wrapper.</description>
     </item>
 </recommendations>
 """

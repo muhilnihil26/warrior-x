@@ -642,7 +642,7 @@ class BrowserViewModel(application: Application) : AndroidViewModel(application)
         val lower = url.lowercase()
         return when {
             lower.contains("war.dev/security") || lower.contains("cryptography") || lower.contains("cyber") || lower.contains("aes") || lower.contains("keys") -> "security"
-            lower.contains("war.dev/privacy") || lower.contains("duckduckgo") || lower.contains("proton") || lower.contains("adblock") || lower.contains("ublock") -> "privacy"
+            lower.contains("war.dev/privacy") || lower.contains("google") || lower.contains("proton") || lower.contains("adblock") || lower.contains("ublock") -> "privacy"
             lower.contains("android") || lower.contains("kotlin") || lower.contains("github") || lower.contains("stackoverflow") || lower.contains("compose") -> "tech"
             lower.contains("youtube") || lower.contains("netflix") || lower.contains("reddit") || lower.contains("spotify") -> "entertainment"
             else -> "general"

@@ -241,9 +241,9 @@
                             <span class="text-[8.5px] text-obsidian-muted block mt-0.5 font-mono">Web Comic</span>
                         </button>
 
-                        <button onclick="navigateIframeToUrl('duckduckgo.com')" class="m3-card bg-obsidian-card border border-obsidian-border p-3.5 rounded-2xl text-center flex flex-col items-center justify-center hover:border-warrior-blue/40 transition-colors cursor-pointer" id="tile-google">
-                            <div class="w-8 h-8 rounded-full bg-orange-100 text-orange-700 flex items-center justify-center font-bold text-sm mb-1.5 border border-orange-200">D</div>
-                            <span class="text-xs font-bold text-obsidian-text block">DuckDuckGo</span>
+                        <button onclick="navigateIframeToUrl('www.google.com')" class="m3-card bg-obsidian-card border border-obsidian-border p-3.5 rounded-2xl text-center flex flex-col items-center justify-center hover:border-warrior-blue/40 transition-colors cursor-pointer" id="tile-google">
+                            <div class="w-8 h-8 rounded-full bg-blue-100 text-[#4285F4] flex items-center justify-center font-bold text-sm mb-1.5 border border-blue-200">G</div>
+                            <span class="text-xs font-bold text-obsidian-text block">Google</span>
                             <span class="text-[8.5px] text-obsidian-muted block mt-0.5 font-mono">Sec-Search</span>
                         </button>
                     </div>
@@ -274,7 +274,7 @@
                 <div class="bg-yellow-50 text-yellow-800 border border-yellow-200 px-4 py-2.5 rounded-2xl text-xs flex items-center justify-between shadow-sm relative z-10 mb-2" id="sop-warn">
                     <div class="flex items-center space-x-2">
                         <svg class="w-4 h-4 text-yellow-600 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
-                        <p class="font-medium mr-2"><strong>Secure Same-Origin Policy (SOP) Notice:</strong> High security web clusters block standard framing payloads. DuckDuckGo index loaded natively.</p>
+                        <p class="font-medium mr-2"><strong>Secure Same-Origin Policy (SOP) Notice:</strong> High security web clusters block standard framing payloads. Google index loaded natively.</p>
                     </div>
                     <button onclick="dismissSopBanner()" class="text-slate-500 hover:text-slate-900 font-bold ml-2 text-sm">&times;</button>
                 </div>
@@ -610,7 +610,7 @@
         // Default local bookmarks template database
         const DEFAULT_BOOKMARKS = [
             { id: 101, title: 'Wikipedia Safe Portal', url: 'en.m.wikipedia.org', isEncrypted: false },
-            { id: 102, title: 'DuckDuckGo Secure Search', url: 'html.duckduckgo.com/html/', isEncrypted: false },
+            { id: 102, title: 'Google Secure Search', url: 'google.com', isEncrypted: false },
             { id: 103, title: 'Hacker News Thread (ReadOnly)', url: 'news.ycombinator.com', isEncrypted: false },
             { id: 104, title: 'xkcd Comic Feed Stream', url: 'xkcd.com', isEncrypted: false }
         ];
@@ -841,8 +841,8 @@
                 tabLabel = val.replace(/^https?:\/\/(www\.)?/, '').split('/')[0];
             } else {
                 // secure search route
-                destination = "https://html.duckduckgo.com/html/?q=" + encodeURIComponent(val);
-                tabLabel = "DuckDuckGo: " + val;
+                destination = "https://www.google.com/search?q=" + encodeURIComponent(val);
+                tabLabel = "Google: " + val;
             }
 
             // Commit tab url update
@@ -1105,7 +1105,7 @@
         function determineBrowsedTopicCategory(url) {
             const raw = url.toLowerCase();
             if (raw.includes('security') || raw.includes('crypto') || raw.includes('aes') || raw.includes('lock')) return 'security';
-            if (raw.includes('privacy') || raw.includes('adblock') || raw.includes('ublock') || raw.includes('duckduckgo')) return 'privacy';
+            if (raw.includes('privacy') || raw.includes('adblock') || raw.includes('ublock') || raw.includes('google')) return 'privacy';
             if (raw.includes('tech') || raw.includes('kotlin') || raw.includes('android') || raw.includes('developer')) return 'tech';
             return 'general';
         }
