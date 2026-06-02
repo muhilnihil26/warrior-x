@@ -2,6 +2,7 @@
   "version": 2,
   "cleanUrls": true,
   "routes": [
+    { "src": "/browser", "dest": "/browser.html" },
     { "src": "/(.*)", "dest": "/$1" }
   ]
 }

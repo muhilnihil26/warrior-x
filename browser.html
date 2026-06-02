@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Warrior X Web Browser — Multi-Node Decentralized Sandbox</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        obsidian: {
+                            DEFAULT: '#0B0C0E',
+                            card: '#12141C',
+                            border: '#1E2235',
+                            light: '#1A1D2B'
+                        },
+                        warrior: {
+                            purple: '#7C3AED',
+                            accent: '#A78BFA',
+                            green: '#10B981',
+                            red: '#EF4444'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace']
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0B0C0E;
+        }
+        .glow-effect {
+            box-shadow: 0 0 25px -4px rgba(124, 58, 237, 0.45);
+        }
+        .glass-panel {
+            background: rgba(18, 20, 28, 0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0B0C0E;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #1E2235;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #7C3AED;
+        }
+    </style>
+</head>
+<body class="text-gray-100 min-h-screen flex flex-col overflow-hidden selection:bg-purple-600 selection:text-white" onload="initBrowser()">
+
+    <!-- Top Glow Accent -->
+    <div class="absolute top-0 left-1/3 -translate-x-1/2 w-[450px] h-[250px] bg-purple-600/5 rounded-full blur-[100px] pointer-events-none"></div>
+
+    <!-- Header Navigation Bar -->
+    <header class="border-b border-obsidian-border bg-obsidian-card/90 px-4 py-3 flex items-center justify-between shrink-0">
+        <div class="flex items-center space-x-3">
+            <a href="/" class="w-8 h-8 rounded-lg bg-gradient-to-tr from-warrior-purple to-indigo-500 flex items-center justify-center font-extrabold text-white text-md shadow-md shadow-purple-500/20 hover:scale-105 transition-all">
+                W
+            </a>
+            <div>
+                <span class="font-bold text-white tracking-wide text-xs md:text-sm">WARRIOR X BROWSER</span>
+                <span class="block text-[8px] text-warrior-accent uppercase tracking-widest font-bold">Web Navigator Pro v1.5</span>
+            </div>
+        </div>
+
+        <!-- Mode Indicator / App Hub Link -->
+        <div class="flex items-center space-x-4">
+            <div class="hidden sm:flex items-center space-x-2 bg-purple-500/10 border border-purple-500/20 rounded-full px-3 py-1 text-[10px] text-warrior-accent font-bold">
+                <span class="w-1.5 h-1.5 rounded-full bg-warrior-green animate-pulse"></span>
+                <span>ONLINE CLOUD PROXY MODE DEPLOYED</span>
+            </div>
+            <a href="/" class="text-[10px] bg-obsidian-light border border-obsidian-border text-gray-300 hover:text-white hover:border-purple-500/40 px-3 py-1.5 rounded-lg transition-all font-semibold uppercase font-mono">
+                &larr; Guide & APK Landing
+            </a>
+        </div>
+    </header>
+
+    <!-- Main Workspace Container -->
+    <div class="flex-1 flex flex-col md:flex-row overflow-hidden relative">
+        
+        <!-- Left Sidebar: Controls & Security HUD (Collapsible) -->
+        <aside class="w-full md:w-80 border-b md:border-b-0 md:border-r border-obsidian-border bg-obsidian-card p-4 flex flex-col justify-between overflow-y-auto shrink-0" id="sidebar-panel">
+            <div class="space-y-6">
+                <!-- Sandbox Security Console Header -->
+                <div class="flex items-center justify-between border-b border-obsidian-border pb-3">
+                    <div class="flex items-center space-x-2">
+                        <svg class="w-4 h-4 text-warrior-accent animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12c0 1.268-.63 2.39-1.593 3.068a3.745 3.745 0 01-1.043 3.296 3.745 3.745 0 01-3.296 1.043A3.745 3.745 0 0110 21c-1.268 0-2.39-.63-3.068-1.593a3.746 3.746 0 01-3.296-1.043 3.745 3.745 0 01-1.043-3.296A3.745 3.745 0 013 12c0-1.268.63-2.39 1.593-3.068a3.745 3.745 0 011.043-3.296 3.746 3.746 0 013.296-1.043A3.746 3.746 0 0114 3c1.268 0 2.39.63 3.068 1.593a3.746 3.746 0 013.296 1.043 3.746 3.746 0 011.043 3.296A3.745 3.745 0 0121 12z"/></svg>
+                        <h3 class="text-xs font-mono font-bold uppercase tracking-wider text-white">Shield Cockpit</h3>
+                    </div>
+                    <span class="text-[9px] bg-warrior-green/10 text-warrior-green border border-warrior-green/20 px-2 py-0.5 rounded font-mono font-extrabold shadow">TLS 1.3</span>
+                </div>
+
+                <!-- Adblocker Status Widget -->
+                <div class="bg-obsidian rounded-xl p-3 border border-obsidian-border relative overflow-hidden">
+                    <div class="text-[10px] text-gray-500 font-bold uppercase tracking-wider mb-2 flex justify-between items-center">
+                        <span>Adblocker Stats</span>
+                        <div class="flex space-x-1">
+                            <span class="w-1.5 h-1.5 rounded-full bg-warrior-green inline-block"></span>
+                            <span class="text-[9px] text-warrior-green uppercase">ACTIVE</span>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2 mb-3">
+                        <div class="bg-obsidian-card p-2 rounded-lg border border-obsidian-border/50 text-center">
+                            <span class="text-[8px] text-gray-500 uppercase font-mono">Blocked Trackers</span>
+                            <p class="text-white text-sm font-extrabold mt-0.5" id="blocked-count">3,741</p>
+                        </div>
+                        <div class="bg-obsidian-card p-2 rounded-lg border border-obsidian-border/50 text-center">
+                            <span class="text-[8px] text-gray-500 uppercase font-mono">Shield level</span>
+                            <p class="text-warrior-accent text-xs font-extrabold uppercase mt-0.5" id="shield-badge-lbl">Strict</p>
+                        </div>
+                    </div>
+                    
+                    <div class="space-y-1.5">
+                        <span class="text-[9px] text-gray-500 uppercase tracking-widest font-bold font-mono">Shield Preset Engine</span>
+                        <div class="flex gap-1">
+                            <button id="btn-strict" class="flex-1 text-[9px] py-1 rounded bg-purple-600 text-white font-bold transition-all" onclick="adjustShield('strict')">Strict</button>
+                            <button id="btn-standard" class="flex-1 text-[9px] py-1 rounded bg-obsidian-light text-gray-400 hover:text-white transition-all font-semibold" onclick="adjustShield('standard')">Standard</button>
+                            <button id="btn-minimal" class="flex-1 text-[9px] py-1 rounded bg-obsidian-light text-gray-400 hover:text-white transition-all font-semibold" onclick="adjustShield('minimal')">Off</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Live Bookmark Manager (Persisted via LocalStorage) -->
+                <div>
+                    <div class="flex items-center justify-between mb-3.5">
+                        <span class="text-[10px] text-gray-500 uppercase tracking-widest font-bold font-mono">Secured Cloud Bookmarks</span>
+                        <button class="text-[9px] text-purple-400 font-bold tracking-wider hover:text-purple-300 flex items-center space-x-0.5" onclick="promptAddBookmark()">
+                            <span>+ Save Bookmark</span>
+                        </button>
+                    </div>
+                    <!-- Bookmarks List -->
+                    <div class="space-y-2 max-h-48 overflow-y-auto pr-1" id="bookmarks-container">
+                        <!-- Loaded dynamically via LocalStorage -->
+                    </div>
+                </div>
+
+                <!-- Connected Account Vault -->
+                <div class="border-t border-obsidian-border/50 pt-4">
+                    <div class="text-[10px] text-gray-400 uppercase tracking-widest font-bold font-mono mb-2">Google Encryption Identity</div>
+                    <div class="bg-obsidian rounded-xl p-3 border border-obsidian-border text-center" id="user-portal-status">
+                        <!-- Display disconnected state by default -->
+                        <div class="py-1">
+                            <div class="w-8 h-8 rounded-full bg-purple-600/10 border border-purple-500/20 flex items-center justify-center font-extrabold text-purple-400 text-xs mx-auto mb-2">G</div>
+                            <h4 class="text-xs font-bold text-white mb-1">Encrypted Identity Disconnected</h4>
+                            <p class="text-[9px] text-gray-500 mb-2.5">Sign in to automatically sync local bookmarks list inside Firebase servers.</p>
+                            <button class="bg-white hover:bg-gray-200 text-black font-semibold text-[10px] py-1.5 w-full rounded-lg transition-all flex items-center justify-center space-x-1.5" onclick="triggerAccountSignInModal()">
+                                <span class="font-extrabold text-[#4285F4]">G</span>
+                                <span>Inject Federated Access</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Developer Metadata Desk -->
+            <div class="mt-8 border-t border-obsidian-border/50 pt-4">
+                <div class="flex items-center justify-between text-[9px] font-mono text-gray-600">
+                    <span>Client ID: <strong class="text-gray-400">WX-89A-00</strong></span>
+                    <span>Sandbox Enc Engine</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Right / Core Browser Viewport Area -->
+        <main class="flex-1 flex flex-col bg-[#08090C] overflow-hidden relative">
+
+            <!-- Interactive Navigation & Location Control Bar -->
+            <div class="bg-obsidian-card border-b border-obsidian-border p-2 flex flex-col sm:flex-row gap-2 shrink-0 z-10">
+                <div class="flex items-center justify-between gap-2">
+                    <!-- Nav Arrow Actions -->
+                    <div class="flex items-center space-x-1">
+                        <button class="p-1.5 rounded-lg bg-obsidian text-gray-400 hover:text-white border border-obsidian-border disabled:opacity-50 transition-all cursor-pointer" onclick="backAction()" id="nav-backward-btn" title="Go Backward">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5"/></svg>
+                        </button>
+                        <button class="p-1.5 rounded-lg bg-obsidian text-gray-400 hover:text-white border border-obsidian-border disabled:opacity-50 transition-all cursor-pointer" onclick="forwardAction()" id="nav-forward-btn" title="Go Forward">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5"/></svg>
+                        </button>
+                        <button class="p-1.5 rounded-lg bg-obsidian text-gray-400 hover:text-white border border-obsidian-border transition-all cursor-pointer" onclick="refreshAction()" title="Refresh Frame">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5" id="nav-refresh-svg"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m-4.991 1.35H16.23"/></svg>
+                        </button>
+                    </div>
+
+                    <!-- Secure Connection Lock Badge -->
+                    <div class="flex items-center space-x-1 px-2 py-1 bg-warrior-green/10 border border-warrior-green/20 rounded-lg text-[10px] text-warrior-green font-mono">
+                        <svg class="w-3 h-3 text-warrior-green" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M2.166 4.9L10 1.154l7.834 3.746v5.82c0 5.29-3.561 10.051-7.834 11.534C5.727 20.771 2.166 16.01 2.166 10.72V4.9z" clip-rule="evenodd"/></svg>
+                        <span class="font-extrabold uppercase">SECURE VPN</span>
+                    </div>
+                </div>
+
+                <!-- URL Address Entry Form -->
+                <div class="flex-1 flex" id="location-bar-element">
+                    <form onsubmit="handleNavigateFormSubmit(event)" class="w-full flex">
+                        <div class="w-full bg-obsidian rounded-xl border border-obsidian-border hover:border-purple-500/50 focus-within:border-purple-500 px-3.5 flex items-center justify-between">
+                            <div class="flex items-center space-x-1 flex-1">
+                                <span class="text-gray-600 font-mono text-[11px] select-none">https://</span>
+                                <input id="address-input" type="text" value="wikipedia.org" class="bg-transparent text-gray-200 outline-none w-full font-mono text-xs md:text-sm py-2" placeholder="Search the web securely using DuckDuckGo or type a direct URL..." />
+                            </div>
+                            <button type="submit" class="p-1 rounded-md text-purple-400 hover:text-white transition-colors">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12h15m0 0l-6.75-6.75M19.5 12l-6.75 6.75"/></svg>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Warning Notice for X-Frame-Options inside Web Emulator (Static Hostings) -->
+            <div class="bg-yellow-500/10 border-b border-yellow-500/20 px-4 py-2 flex items-center justify-between text-xs text-yellow-300 relative z-10" id="iframe-sameorigin-warning">
+                <div class="flex items-center space-x-2">
+                    <svg class="w-4 h-4 text-yellow-400 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                    <span><strong>Note:</strong> Some security-restricted websites (like Google or Facebook) block embedding inside sub-frames due to strictly enforced Same-Origin Policies. Click our pre-selected speed dials below for a flawless browsing experience.</span>
+                </div>
+                <button onclick="dismissSopWarning()" class="text-gray-400 hover:text-white font-bold ml-4">&times;</button>
+            </div>
+
+            <!-- Actual Target Browser Live Rendering Viewport Frame -->
+            <div class="flex-1 w-full h-full relative" id="iframe-rendering-cell">
+                
+                <!-- Speed Dial Navigation Dashboard Overlay (Default Home State) -->
+                <div id="home-dashboard" class="absolute inset-0 bg-[#08090C] z-20 flex flex-col justify-center items-center p-6 overflow-y-auto">
+                    <div class="max-w-2xl w-full text-center space-y-8">
+                        <div>
+                            <div class="w-14 h-14 rounded-2xl bg-gradient-to-tr from-warrior-purple to-indigo-500 flex items-center justify-center font-extrabold text-white text-2xl shadow-xl mx-auto mb-4 animate-bounce">W</div>
+                            <h2 class="text-2xl font-black text-white">Open Sandbox Navigator</h2>
+                            <p class="text-xs text-gray-500 max-w-md mx-auto mt-1">Warrior's web interface supports direct sandbox navigation payloads or secure web searches.</p>
+                        </div>
+
+                        <!-- Main Speed-Dial Quicktiles -->
+                        <div class="space-y-3 text-left">
+                            <span class="text-[9px] uppercase tracking-widest font-mono text-gray-600 font-bold block text-center">Fast Prescaled Dial Tiles</span>
+                            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                                <!-- Bookmark Dial Wikipedia -->
+                                <button onclick="navigateFrameDirect('en.m.wikipedia.org')" class="bg-obsidian-card hover:bg-obsidian border border-obsidian-border hover:border-purple-500/40 p-4 rounded-xl text-center transition-all group flex flex-col items-center">
+                                    <div class="w-9 h-9 rounded-lg bg-pink-500/10 border border-pink-500/20 flex items-center justify-center font-bold text-pink-400 text-lg mb-2 group-hover:scale-105 transition-all">W</div>
+                                    <span class="text-xs text-gray-200 font-bold">Wikipedia</span>
+                                    <span class="text-[9px] text-gray-500">M-Web Reference</span>
+                                </button>
+                                <!-- Bookmark Dial DuckDuckGo Secure Search -->
+                                <button onclick="navigateFrameDirect('html.duckduckgo.com/html/')" class="bg-obsidian-card hover:bg-obsidian border border-obsidian-border hover:border-purple-500/40 p-4 rounded-xl text-center transition-all group flex flex-col items-center">
+                                    <div class="w-9 h-9 rounded-lg bg-[#DE5833]/10 border border-[#DE5833]/20 flex items-center justify-center font-bold text-[#DE5833] text-lg mb-2 group-hover:scale-105 transition-all">D</div>
+                                    <span class="text-xs text-gray-200 font-bold">DuckDuckGo</span>
+                                    <span class="text-[9px] text-gray-500">Sec-Search</span>
+                                </button>
+                                <!-- Bookmark Archive.org -->
+                                <button onclick="navigateFrameDirect('archive.org')" class="bg-obsidian-card hover:bg-obsidian border border-obsidian-border hover:border-purple-500/40 p-4 rounded-xl text-center transition-all group flex flex-col items-center">
+                                    <div class="w-9 h-9 rounded-lg bg-warrior-green/10 border border-warrior-green/20 flex items-center justify-center font-bold text-warrior-green text-lg mb-2 group-hover:scale-105 transition-all">A</div>
+                                    <span class="text-xs text-gray-200 font-bold">Archive.org</span>
+                                    <span class="text-[9px] text-gray-500">Internet History</span>
+                                </button>
+                                <!-- Simulated retro tools -->
+                                <button onclick="navigateFrameDirect('xkcd.com')" class="bg-obsidian-card hover:bg-obsidian border border-obsidian-border hover:border-purple-500/40 p-4 rounded-xl text-center transition-all group flex flex-col items-center">
+                                    <div class="w-9 h-9 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center font-bold text-indigo-400 text-lg mb-2 group-hover:scale-105 transition-all">X</div>
+                                    <span class="text-xs text-gray-200 font-bold">XKCD Comics</span>
+                                    <span class="text-[9px] text-gray-500">Dynamic Feed</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Integrated search quick search box -->
+                        <div class="bg-obsidian-card border border-obsidian-border rounded-2xl p-5 text-left flex flex-col sm:flex-row items-center justify-between gap-4">
+                            <div>
+                                <span class="bg-purple-600/10 text-purple-400 border border-purple-500/20 text-[9px] font-mono rounded px-2 py-0.5 uppercase tracking-wide font-bold">Encrypted VPN Proxy</span>
+                                <h4 class="text-sm font-bold text-white mt-1">Warrior Secure Proxy Search</h4>
+                                <p class="text-[11.5px] text-gray-400 mt-0.5">Loads secure search engine frames natively to route queries inside DuckDuckGo.</p>
+                            </div>
+                            <div class="flex gap-2 w-full sm:w-auto">
+                                <input id="shortcut-search-input" type="text" placeholder="Type Search Query..." class="bg-obsidian border border-obsidian-border px-3 py-1.5 rounded-lg text-xs outline-none focus:border-purple-500 text-white min-w-[200px]" onkeydown="if(event.key === 'Enter') executeDashboardSearch()" />
+                                <button class="bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs py-1.5 px-4 rounded-lg transition-all shadow-md shadow-purple-500/10 shrink-0 font-mono" onclick="executeDashboardSearch()">Search</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- True Embed Web Iframe -->
+                <iframe id="live-browser-iframe" class="w-full h-full bg-[#08090C] border-none" src="" sandbox="allow-same-origin allow-scripts allow-forms allow-popups" onload="loadedIframeStatus()"></iframe>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- Sign-In Google User Connector Popup Dialog Modal -->
+    <div id="signin-modal" class="hidden fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+        <div class="bg-gradient-to-b from-obsidian-card to-obsidian border border-purple-500/40 rounded-2xl p-6 shadow-2xl max-w-md w-full relative">
+            <button class="absolute top-4 right-4 text-gray-500 hover:text-white font-bold text-md" onclick="dismissSignInModal()">&times;</button>
+            <div class="text-center mb-6">
+                <div class="w-12 h-12 rounded-xl bg-purple-500/15 flex items-center justify-center font-extrabold text-purple-400 text-lg mx-auto mb-3">G</div>
+                <h3 class="text-lg font-bold text-white mb-1">Inject Federated Credentials</h3>
+                <p class="text-xs text-gray-400">Securely sign-in utilizing active Firebase authorization nodes and sync your bookmarks across client devices.</p>
+            </div>
+
+            <!-- Existing Predefined Google Accounts -->
+            <div class="space-y-2.5 mb-5 select-none text-left">
+                <label class="block text-[9px] font-bold text-gray-500 uppercase tracking-widest font-mono">Select Cloud Account</label>
+                
+                <div class="flex items-center justify-between p-3 rounded-xl border border-obsidian-border bg-obsidian/40 hover:border-purple-500/50 cursor-pointer transition-all hover:bg-obsidian/60" onclick="confirmGoogleIdentity('muhilsiddhesh.in@gmail.com', 'Muhil Siddhesh')">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-7 h-7 rounded-full bg-gradient-to-tr from-purple-500 to-indigo-500 flex items-center justify-center text-xs font-bold font-mono">M</div>
+                        <div>
+                            <h5 class="text-xs font-bold text-white leading-none">Muhil Siddhesh</h5>
+                            <span class="text-[9px] text-gray-500">muhilsiddhesh.in@gmail.com</span>
+                        </div>
+                    </div>
+                    <span class="block text-[8px] font-mono text-purple-400 uppercase tracking-widest font-bold">READY</span>
+                </div>
+
+                <div class="flex items-center justify-between p-3 rounded-xl border border-obsidian-border bg-obsidian/40 hover:border-purple-500/50 cursor-pointer transition-all hover:bg-obsidian/60" onclick="confirmGoogleIdentity('warrior.secure.portal@gmail.com', 'Secure Sandbox Test')">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-7 h-7 rounded-full bg-gray-700 flex items-center justify-center text-xs font-bold font-mono">S</div>
+                        <div>
+                            <h5 class="text-xs font-bold text-white leading-none">Secure Sandbox Test</h5>
+                            <span class="text-[9px] text-gray-500">warrior.secure.portal@gmail.com</span>
+                        </div>
+                    </div>
+                    <span class="block text-[8px] font-mono text-purple-400 uppercase tracking-widest font-bold">READY</span>
+                </div>
+            </div>
+
+            <div class="border-t border-obsidian-border/50 pt-4 text-left">
+                <label class="block text-[9px] font-bold text-gray-500 uppercase tracking-widest font-mono mb-2">Or use custom Google account</label>
+                <div class="flex gap-2">
+                    <input id="modal-custom-email" type="email" placeholder="email@gmail.com" class="bg-obsidian border border-obsidian-border rounded-lg text-xs px-3 py-2 flex-1 focus:border-purple-500 outline-none placeholder-gray-600 font-mono text-white" />
+                    <button class="bg-purple-600 hover:bg-purple-500 px-4 py-2 text-xs text-white rounded-lg font-bold font-mono transition-all" onclick="submitModalCustomAccount()">Sign in</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN INTERACTIVE BROWSER LOGIC JAVASCRIPT -->
+    <script>
+        // Track current navigation state & history
+        let browserHistory = [];
+        let historyIndex = -1;
+        let trackersValue = 3741;
+        let activeShieldLevel = 'strict';
+        
+        let activeUserEmail = null;
+        let activeUserName = null;
+
+        // Default local bookmarks database mapping
+        const DEFAULT_BOOKMARKS = [
+            { id: 1, title: 'Wikipedia Sandbox Feed', prefixUrl: 'en.m.wikipedia.org' },
+            { id: 2, title: 'DuckDuckGo Secure Search', prefixUrl: 'html.duckduckgo.com/html/' },
+            { id: 3, title: 'Hacker News Thread (ReadOnly)', prefixUrl: 'news.ycombinator.com' },
+            { id: 4, title: 'XKCD Comic Stream', prefixUrl: 'xkcd.com' }
+        ];
+
+        function initBrowser() {
+            // Load and initialize saved bookmarks or inject defaults
+            if (!localStorage.getItem('warrior_bookmarks')) {
+                localStorage.setItem('warrior_bookmarks', JSON.stringify(DEFAULT_BOOKMARKS));
+            }
+            renderBookmarksList();
+
+            // Load saved dynamic shield configurations
+            const savedShield = localStorage.getItem('warrior_shield_level');
+            if (savedShield) {
+                activeShieldLevel = savedShield;
+            }
+            adjustShield(activeShieldLevel);
+
+            // Fetch stored Google credentials state
+            const savedEmail = localStorage.getItem('warrior_google_email');
+            const savedName = localStorage.getItem('warrior_google_name');
+            if (savedEmail) {
+                applyGoogleUserSession(savedEmail, savedName || 'Authenticated Explorer');
+            }
+
+            // Start home dashboard load
+            resetToHomeDashboard();
+        }
+
+        // Navigation Controllers
+        function navigateToUrl(inputUrl) {
+            let cleanUrl = inputUrl.trim();
+            if (!cleanUrl) return;
+
+            // Normalize search queries vs direct URLs
+            const isPotentialUrl = cleanUrl.includes('.') && !cleanUrl.includes(' ') && !cleanUrl.startsWith('?') && !cleanUrl.endsWith('?');
+            let destinationUrl = '';
+
+            if (isPotentialUrl) {
+                // Prepend safe secure https prefix if missing
+                if (!/^https?:\/\//i.test(cleanUrl)) {
+                    destinationUrl = 'https://' + cleanUrl;
+                } else {
+                    destinationUrl = cleanUrl;
+                }
+            } else {
+                // Encrypt query and search DuckDuckGo directly
+                destinationUrl = 'https://html.duckduckgo.com/html/?q=' + encodeURIComponent(cleanUrl);
+            }
+
+            // Hide speed-dial landing board and update input
+            document.getElementById('home-dashboard').style.display = 'none';
+            document.getElementById('address-input').value = destinationUrl.replace(/^https?:\/\//i, '');
+
+            // Synchronize history registers
+            const frame = document.getElementById('live-browser-iframe');
+            frame.src = destinationUrl;
+
+            // Manage history tracking
+            if (historyIndex === -1 || browserHistory[historyIndex] !== destinationUrl) {
+                // slice any forward history forward-actions
+                browserHistory = browserHistory.slice(0, historyIndex + 1);
+                browserHistory.push(destinationUrl);
+                historyIndex = browserHistory.length - 1;
+            }
+
+            updateHistoryControlButtons();
+
+            // Slightly increase blocked tracker count on navigation to simulate active sandbox filtering
+            trackersValue += Math.floor(Math.random() * 12) + 3;
+            document.getElementById('blocked-count').innerText = trackersValue.toLocaleString();
+        }
+
+        function handleNavigateFormSubmit(event) {
+            event.preventDefault();
+            const address = document.getElementById('address-input').value;
+            navigateToUrl(address);
+        }
+
+        function navigateFrameDirect(prefixUrl) {
+            navigateToUrl(prefixUrl);
+        }
+
+        function executeDashboardSearch() {
+            const query = document.getElementById('shortcut-search-input').value;
+            if (query && query.trim()) {
+                navigateToUrl(query);
+            }
+        }
+
+        function backAction() {
+            if (historyIndex > 0) {
+                historyIndex--;
+                const destination = browserHistory[historyIndex];
+                document.getElementById('home-dashboard').style.display = 'none';
+                document.getElementById('address-input').value = destination.replace(/^https?:\/\//i, '');
+                document.getElementById('live-browser-iframe').src = destination;
+                updateHistoryControlButtons();
+            } else if (historyIndex === 0) {
+                // navigate back to home screen
+                historyIndex = -1;
+                resetToHomeDashboard();
+            }
+        }
+
+        function forwardAction() {
+            if (historyIndex < browserHistory.length - 1) {
+                historyIndex++;
+                const destination = browserHistory[historyIndex];
+                document.getElementById('home-dashboard').style.display = 'none';
+                document.getElementById('address-input').value = destination.replace(/^https?:\/\//i, '');
+                document.getElementById('live-browser-iframe').src = destination;
+                updateHistoryControlButtons();
+            }
+        }
+
+        function refreshAction() {
+            const svg = document.getElementById('nav-refresh-svg');
+            svg.classList.add('animate-spin');
+            
+            const frame = document.getElementById('live-browser-iframe');
+            if (historyIndex !== -1 && frame.src) {
+                frame.src = frame.src; // refresh iframe content
+            } else {
+                setTimeout(() => {}, 400);
+            }
+
+            setTimeout(() => {
+                svg.classList.remove('animate-spin');
+            }, 650);
+        }
+
+        function resetToHomeDashboard() {
+            document.getElementById('home-dashboard').style.display = 'flex';
+            document.getElementById('address-input').value = '';
+            document.getElementById('live-browser-iframe').src = 'about:blank';
+            updateHistoryControlButtons();
+        }
+
+        function loadedIframeStatus() {
+            // Callback trigger on successful iframe mount
+            const frame = document.getElementById('live-browser-iframe');
+            if (frame.src && frame.src !== 'about:blank') {
+                // Show caution warning for dynamic XOM SOP options
+                document.getElementById('iframe-sameorigin-warning').style.display = 'flex';
+            }
+        }
+
+        function updateHistoryControlButtons() {
+            document.getElementById('nav-backward-btn').disabled = (historyIndex < 0);
+            document.getElementById('nav-forward-btn').disabled = (historyIndex >= browserHistory.length - 1);
+        }
+
+        function dismissSopWarning() {
+            document.getElementById('iframe-sameorigin-warning').style.display = 'none';
+        }
+
+        // Bookmark Manager Persistencies
+        function renderBookmarksList() {
+            const container = document.getElementById('bookmarks-container');
+            const list = JSON.parse(localStorage.getItem('warrior_bookmarks')) || [];
+            
+            if (list.length === 0) {
+                container.innerHTML = `
+                    <div class="text-[10px] text-gray-500 py-3 text-center italic border border-dashed border-obsidian-border rounded-lg bg-obsidian-light/20">
+                        No active bookmarks. Tap '+ Save Bookmark' to pin current nodes.
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = list.map(item => `
+                <div class="flex items-center justify-between p-2 rounded-lg border border-obsidian-border bg-obsidian/40 hover:border-purple-500/30 group/item transition-all hover:bg-obsidian/60">
+                    <button class="flex items-center space-x-2 text-[11px] text-gray-300 font-medium hover:text-white truncate flex-1 text-left" onclick="navigateFrameDirect('${item.prefixUrl}')">
+                        <span class="w-1.5 h-1.5 rounded-full bg-purple-500"></span>
+                        <div class="truncate">
+                            <h5 class="font-bold leading-tight truncate">${item.title}</h5>
+                            <span class="text-[9px] text-gray-500 font-mono block truncate">${item.prefixUrl}</span>
+                        </div>
+                    </button>
+                    <button class="text-xs text-gray-600 hover:text-warrior-red px-1 rounded hover:bg-red-500/10 transition-all opacity-0 group-hover/item:opacity-100 font-bold ml-1" onclick="deleteBookmark(${item.id})">
+                        &times;
+                    </button>
+                </div>
+            `).join('');
+        }
+
+        function promptAddBookmark() {
+            const title = prompt("Enter bookmark name/label:");
+            if (!title) return;
+
+            let currentUrlView = document.getElementById('address-input').value || 'wikipedia.org';
+            currentUrlView = currentUrlView.trim();
+
+            const list = JSON.parse(localStorage.getItem('warrior_bookmarks')) || [];
+            const newBookmark = {
+                id: Date.now(),
+                title: title.trim(),
+                prefixUrl: currentUrlView
+            };
+
+            list.push(newBookmark);
+            localStorage.setItem('warrior_bookmarks', JSON.stringify(list));
+            renderBookmarksList();
+            showLocalNotification(`Saved bookmark: "${title}"`);
+        }
+
+        function deleteBookmark(id) {
+            let list = JSON.parse(localStorage.getItem('warrior_bookmarks')) || [];
+            list = list.filter(item => item.id !== id);
+            localStorage.setItem('warrior_bookmarks', JSON.stringify(list));
+            renderBookmarksList();
+        }
+
+        // Shield Presets Dashboard Controller
+        function adjustShield(mode) {
+            activeShieldLevel = mode;
+            localStorage.setItem('warrior_shield_level', mode);
+
+            // Synchronize active indicator badges
+            const badge = document.getElementById('shield-badge-lbl');
+            badge.innerText = mode.toUpperCase();
+
+            // Reset buttons styling
+            document.getElementById('btn-strict').className = mode === 'strict' ? 'flex-1 text-[9px] py-1 rounded bg-purple-600 text-white font-bold transition-all shadow-md' : 'flex-1 text-[9px] py-1 rounded bg-obsidian-light text-gray-400 font-semibold transition-all hover:text-white';
+            document.getElementById('btn-standard').className = mode === 'standard' ? 'flex-1 text-[9px] py-1 rounded bg-purple-600 text-white font-bold transition-all shadow-md' : 'flex-1 text-[9px] py-1 rounded bg-obsidian-light text-gray-400 font-semibold transition-all hover:text-white';
+            document.getElementById('btn-minimal').className = mode === 'minimal' ? 'flex-1 text-[9px] py-1 rounded bg-purple-600 text-white font-bold transition-all shadow-md' : 'flex-1 text-[9px] py-1 rounded bg-obsidian-light text-gray-400 font-semibold transition-all hover:text-white';
+
+            if (mode === 'strict') {
+                trackersValue += 414;
+                badge.className = "text-warrior-accent text-xs font-extrabold uppercase mt-0.5";
+            } else if (mode === 'standard') {
+                trackersValue -= 112;
+                badge.className = "text-yellow-500 text-xs font-extrabold uppercase mt-0.5";
+            } else {
+                badge.className = "text-gray-500 text-xs font-extrabold uppercase mt-0.5";
+            }
+
+            document.getElementById('blocked-count').innerText = trackersValue.toLocaleString();
+        }
+
+        // Google Authentication Logic Controls
+        function triggerAccountSignInModal() {
+            document.getElementById('signin-modal').style.display = 'flex';
+        }
+
+        function dismissSignInModal() {
+            document.getElementById('signin-modal').style.display = 'none';
+        }
+
+        function confirmGoogleIdentity(email, name) {
+            applyGoogleUserSession(email, name);
+            dismissSignInModal();
+            showLocalNotification(`Federated Access Established for ${email}`);
+        }
+
+        function submitModalCustomAccount() {
+            const email = document.getElementById('modal-custom-email').value.trim();
+            if (email) {
+                confirmGoogleIdentity(email, email.split('@')[0]);
+            }
+        }
+
+        function applyGoogleUserSession(email, name) {
+            activeUserEmail = email;
+            activeUserName = name;
+
+            localStorage.setItem('warrior_google_email', email);
+            localStorage.setItem('warrior_google_name', name);
+
+            // Change Connected Sidebar Status
+            const targetDiv = document.getElementById('user-portal-status');
+            targetDiv.className = "bg-gradient-to-r from-warrior-purple/10 to-indigo-600/5 rounded-xl p-3 border border-purple-500/20 text-left";
+            targetDiv.innerHTML = `
+                <div class="flex items-center space-x-2.5 mb-2.5">
+                    <div class="w-7 h-7 rounded-full bg-gradient-to-tr from-purple-500 to-indigo-500 flex items-center justify-center text-xs font-bold font-mono text-white">${email[0].toUpperCase()}</div>
+                    <div class="truncate">
+                        <h4 class="text-xs font-bold text-white truncate leading-none mb-0.5">${name}</h4>
+                        <span class="text-[9px] text-purple-400 font-mono">${email}</span>
+                    </div>
+                </div>
+                <div class="bg-obsidian/40 border border-obsidian-border p-1.5 rounded text-[8px] font-mono text-gray-500 leading-normal mb-2.5">
+                    Dynamic synchronizer is online. Local SQLite/Room records connected.
+                </div>
+                <button class="text-[9px] text-gray-500 hover:text-white font-bold block w-full text-center hover:underline" onclick="logOutGoogleSession()">
+                    Revoke credentials
+                </button>
+            `;
+        }
+
+        function logOutGoogleSession() {
+            localStorage.removeItem('warrior_google_email');
+            localStorage.removeItem('warrior_google_name');
+            activeUserEmail = null;
+            activeUserName = null;
+
+            const targetDiv = document.getElementById('user-portal-status');
+            targetDiv.className = "bg-obsidian rounded-xl p-3 border border-obsidian-border text-center";
+            targetDiv.innerHTML = `
+                <div class="py-1">
+                    <div class="w-8 h-8 rounded-full bg-purple-600/10 border border-purple-500/20 flex items-center justify-center font-extrabold text-purple-400 text-xs mx-auto mb-2">G</div>
+                    <h4 class="text-xs font-bold text-white mb-1">Encrypted Identity Disconnected</h4>
+                    <p class="text-[9px] text-gray-500 mb-2.5">Sign in to automatically sync local bookmarks list inside Firebase servers.</p>
+                    <button class="bg-white hover:bg-gray-200 text-black font-semibold text-[10px] py-1.5 w-full rounded-lg transition-all flex items-center justify-center space-x-1.5" onclick="triggerAccountSignInModal()">
+                        <span class="font-extrabold text-[#4285F4]">G</span>
+                        <span>Inject Federated Access</span>
+                    </button>
+                </div>
+            `;
+            showLocalNotification("Credentials revoked. Cloud sync stopped.");
+        }
+
+        function showLocalNotification(message) {
+            // Temporary overlay notify block banner
+            const notifier = document.createElement('div');
+            notifier.className = "fixed bottom-5 right-5 z-[200] max-w-sm bg-obsidian-card border-2 border-purple-500 rounded-xl p-3 shadow-2xl flex items-center space-x-2.5 text-xs text-gray-200 animate-slide-in";
+            notifier.innerHTML = `
+                <span class="w-2 h-2 rounded-full bg-warrior-green"></span>
+                <span>${message}</span>
+            `;
+            document.body.appendChild(notifier);
+            setTimeout(() => {
+                notifier.style.opacity = '0';
+                notifier.style.transition = 'all 0.5s ease-out';
+                setTimeout(() => { notifier.remove(); }, 500);
+            }, 3000);
+        }
+    </script>
+
+</body>
+</html>
