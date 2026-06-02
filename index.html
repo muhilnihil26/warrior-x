@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Warrior X Browser — Zero-Knowledge Cloud Sync & Security</title>
+    <title>Warrior X Browser — Secure Zero-Knowledge Core & Live Sandbox Simulator</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -12,15 +12,17 @@
                 extend: {
                     colors: {
                         obsidian: {
-                            DEFAULT: '#0B0C0E',
-                            card: '#12141C',
-                            border: '#1E2235',
-                            light: '#1A1D2B'
+                            bg: '#F3F4F9',         // App Background (#F3F4F9)
+                            card: '#FFFFFF',       // App Card (#FFFFFF)
+                            border: '#E2E8F0',     // App Border (#E2E8F0)
+                            text: '#1E293B',       // App Strong Text (#1E293B)
+                            muted: '#64748B'       // App Muted Label (#64748B)
                         },
                         warrior: {
-                            purple: '#7C3AED',
-                            accent: '#A78BFA',
-                            green: '#10B981',
+                            blue: '#2563EB',       // Primary Blue Theme Accent
+                            teal: '#0D9488',       // Cyber Teal Accent
+                            green: '#059669',      // Active Green Accent
+                            purple: '#6D28D9',     // Privacy Mode Purple
                             red: '#EF4444'
                         }
                     },
@@ -37,704 +39,319 @@
     <style>
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #0B0C0E;
+            background-color: #F3F4F9;
         }
-        .glow-effect {
-            box-shadow: 0 0 25px -4px rgba(124, 58, 237, 0.45);
+        .m3-glow {
+            box-shadow: 0 10px 30px -10px rgba(37, 99, 235, 0.15);
         }
-        .glass-panel {
-            background: rgba(18, 20, 28, 0.85);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
+        .m3-card-inset {
+            box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.03);
+        }
+        /* Custom smooth scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #CBD5E1;
+            border-radius: 9999px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94A3B8;
         }
     </style>
 </head>
-<body class="text-gray-100 min-h-screen overflow-x-hidden selection:bg-purple-600 selection:text-white" onload="initSimulation()">
+<body class="text-obsidian-text selection:bg-warrior-blue selection:text-white min-h-screen flex flex-col overflow-x-hidden">
 
-    <!-- Top Glow Accent -->
-    <div class="absolute top-0 left-1/4 -translate-x-1/2 w-[550px] h-[350px] bg-purple-600/10 rounded-full blur-[130px] pointer-events-none"></div>
-    <div class="absolute top-40 right-1/4 w-[650px] h-[450px] bg-indigo-600/10 rounded-full blur-[150px] pointer-events-none"></div>
+    <!-- Top Glow Ornament -->
+    <div class="absolute top-0 left-1/2 -translate-x-1/2 w-[80%] h-[200px] bg-gradient-to-b from-warrior-blue/10 to-transparent rounded-full blur-[90px] pointer-events-none"></div>
 
-    <!-- Header Navigation -->
-    <header class="sticky top-0 z-50 border-b border-obsidian-border glass-panel">
+    <!-- MAIN STICKY BAR MENU -->
+    <header class="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-obsidian-border transition-all">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
             <div class="flex items-center space-x-3">
-                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-warrior-purple to-indigo-500 flex items-center justify-center font-extrabold text-white text-lg shadow-md shadow-purple-500/20">
-                    W
+                <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-warrior-blue to-warrior-teal flex items-center justify-center font-black text-white text-md shadow-md shadow-warrior-blue/10">
+                    X
                 </div>
                 <div>
-                    <span class="font-bold text-white tracking-wide text-md">WARRIOR X BROWSER</span>
-                    <span class="block text-[9px] text-warrior-accent uppercase tracking-widest font-bold">Android Forge Pro</span>
+                    <span class="font-extrabold text-obsidian-text tracking-wide text-xs md:text-sm">WARRIOR X BROWSER</span>
+                    <span class="block text-[8px] text-warrior-blue uppercase tracking-widest font-black leading-tight">by war.dev</span>
                 </div>
             </div>
-            <nav class="hidden md:flex space-x-8 text-sm font-medium text-gray-400">
-                <a href="/browser" class="text-warrior-accent hover:text-purple-300 font-bold transition-colors flex items-center space-x-1.5 bg-purple-500/10 border border-purple-500/20 px-3 py-1 rounded-full text-xs">
-                    <span class="w-1.5 h-1.5 bg-warrior-green rounded-full animate-pulse"></span>
-                    <span>✨ Launch Active Web Browser</span>
-                </a>
-                <a href="#interactive-simulator" class="hover:text-white transition-colors">Interactive Browser Simulator</a>
-                <a href="#features" class="hover:text-white transition-colors">Core Capabilities</a>
-                <a href="#apk-guide" class="hover:text-white transition-colors">Get Android APK</a>
-                <a href="#deploy" class="hover:text-white transition-colors">Vercel Setup</a>
+            <nav class="hidden md:flex items-center space-x-6 text-xs font-semibold text-obsidian-muted">
+                <a href="#interactive-playground" class="hover:text-obsidian-text transition-colors">App Sandbox Play</a>
+                <a href="#features" class="hover:text-obsidian-text transition-colors">Core Capabilities</a>
+                <a href="#apk-manager" class="hover:text-obsidian-text transition-colors">Download APK installer</a>
+                <a href="#deploy-vercel" class="hover:text-obsidian-text transition-colors">Host on Vercel</a>
             </nav>
-            <div class="flex items-center space-x-4">
-                <a href="#deploy" class="text-xs bg-obsidian-light border border-obsidian-border text-gray-300 px-3.5 py-1.5 rounded-lg hover:text-white hover:border-purple-500/50 transition-all font-semibold">
-                    Vercel Specs
-                </a>
-                <a href="#apk-guide" class="text-xs font-bold text-white bg-gradient-to-r from-warrior-purple to-indigo-600 hover:from-purple-500 hover:to-indigo-500 px-5.5 py-2.5 rounded-lg transition-all shadow-lg shadow-purple-500/10">
-                    Download APK Guide
+            <div class="flex items-center space-x-3">
+                <a href="/browser" class="text-xs font-extrabold text-white bg-warrior-blue hover:bg-blue-600 px-4 py-2.5 rounded-full transition-all flex items-center space-x-1 shadow-sm">
+                    <span class="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse mr-1"></span>
+                    <span>Launch Active Browser</span>
                 </a>
             </div>
         </div>
     </header>
 
-    <!-- Hero Section -->
-    <section class="relative pt-16 pb-12 md:pt-20 md:pb-16">
+    <!-- HERO SECTION (Highlighting the Android application layout) -->
+    <section class="relative pt-12 pb-14 md:pt-16 md:pb-20">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <!-- Label Badge -->
-            <div class="inline-flex items-center space-x-2 bg-purple-500/10 text-warrior-accent border border-purple-500/20 rounded-full px-4 py-1.5 text-xs font-bold mb-8">
-                <span class="w-2 h-2 rounded-full bg-warrior-green animate-pulse"></span>
-                <span>SECURED CORE HANDSHAKE ATTACHED</span>
+            
+            <div class="inline-flex items-center space-x-1.5 bg-warrior-blue/10 text-warrior-blue border border-warrior-blue/20 rounded-full px-4 py-1 text-[10.5px] font-bold mb-6">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                <span>SECURED CORE ENGINE INSTANTIATED</span>
             </div>
             
-            <h1 class="text-4xl md:text-6xl font-extrabold text-white tracking-tight leading-none max-w-4xl mx-auto mb-6">
+            <h1 class="text-3xl sm:text-5xl md:text-6xl font-black text-obsidian-text tracking-tight leading-none max-w-4xl mx-auto mb-5">
                 Decentralized & Encrypted <br>
-                <span class="text-transparent bg-clip-text bg-gradient-to-r from-[#D8B4FE] via-warrior-accent to-[#818CF8]">
-                    Zero-Knowledge Sandbox Sync
+                <span class="text-transparent bg-clip-text bg-gradient-to-r from-warrior-blue via-warrior-teal to-warrior-purple">
+                    Zero-Knowledge Web Sandbox 
                 </span>
             </h1>
             
-            <p class="text-gray-400 md:text-xl max-w-2xl mx-auto mb-10 leading-relaxed font-light">
-                The absolute standard for mobile surfing. Equipped with fully local zero-knowledge bookmarks vaults, custom adblocking cockpits, interactive Google Secure Sign Node, and multi-node dynamic cloud synchronization.
+            <p class="text-obsidian-muted md:text-lg max-w-2xl mx-auto mb-8 leading-relaxed font-medium">
+                The absolute standard for secure mobile surfing. Equipped with fully local zero-knowledge bookmarks vaults, custom adblocking cockpits, Google federated logins, and multi-node dynamic sync.
             </p>
 
-            <!-- Buttons -->
-            <div class="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16">
-                <a href="/browser" class="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-warrior-purple to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white rounded-xl font-bold transition-all flex items-center justify-center space-x-3 glow-effect">
-                    <svg class="w-5 h-5 text-purple-200" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253m0 0A11.952 11.952 0 0112 15c-2.998 0-5.74-1.1-7.843-2.918m.559-2.829A8.959 8.959 0 003 12c0 .778.099 1.533.284 2.253"/></svg>
-                    <span>✨ Launch Active Web Browser</span>
+            <div class="flex flex-col sm:flex-row items-center justify-center gap-3 mb-12">
+                <a href="/browser" class="w-full sm:w-auto px-7 py-3.5 bg-warrior-blue hover:bg-blue-600 text-white rounded-full font-extrabold text-xs transition-all flex items-center justify-center space-x-2 shadow-md hover:scale-[1.01]">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253m0 0A11.952 11.952 0 0112 15c-2.998 0-5.74-1.1-7.843-2.918m.559-2.829A8.959 8.959 0 003 12c0 .778.099 1.533.284 2.253"/></svg>
+                    <span>Launch Active Web Browser applet</span>
                 </a>
-                <a href="#interactive-simulator" class="w-full sm:w-auto px-8 py-4 bg-obsidian-light border border-obsidian-border text-gray-200 rounded-xl font-semibold hover:border-gray-600 hover:text-white transition-all flex items-center justify-center space-x-2">
-                    <span>Try Web Simulator</span>
+                <a href="#interactive-playground" class="w-full sm:w-auto px-7 py-3.5 bg-white border border-obsidian-border text-obsidian-text hover:bg-slate-50 rounded-full font-bold text-xs transition-all">
+                    Test Simulator Playground
                 </a>
-                <a href="#apk-guide" class="w-full sm:w-auto px-8 py-4 bg-obsidian-light border border-obsidian-border text-gray-200 rounded-xl font-semibold hover:border-gray-600 hover:text-white transition-all flex items-center justify-center space-x-2">
-                    <span>How to Download App APK</span>
-                    <svg class="w-4 h-4 text-purple-400" fill="currentColor" viewBox="0 0 24 24"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM17 13l-5 5-5-5h3V9h4v4h3z"></path></svg>
+                <a href="#apk-manager" class="w-full sm:w-auto px-7 py-3.5 bg-white border border-obsidian-border text-obsidian-text hover:bg-slate-50 rounded-full font-bold text-xs transition-all">
+                    Download APK file Installer
                 </a>
             </div>
+
+            <!-- CSS Grid highlighting the clean Material 3 Light Mode Android Layout -->
+            <div class="max-w-4xl mx-auto border-4 border-white rounded-3xl m3-glow overflow-hidden shadow-2xl bg-white p-3 md:p-4">
+                <div class="bg-obsidian-bg rounded-2xl p-4 text-left border border-obsidian-border">
+                    <div class="flex items-center justify-between mb-4 pb-2 border-b border-obsidian-border/50">
+                        <div class="flex items-center space-x-2">
+                            <span class="w-3.5 h-3.5 bg-gradient-to-tr from-warrior-blue to-warrior-teal text-white font-extrabold flex items-center justify-center text-[9px] rounded">X</span>
+                            <span class="text-[11px] font-extrabold uppercase text-obsidian-text font-mono">Warrior Startup Deck (Verified)</span>
+                        </div>
+                        <span class="text-[9.5px] bg-[#D1FAE5] text-[#047857] px-2 py-0.5 rounded font-bold">STEALTH SHIELD ACTIVE</span>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <!-- Left Mock View -->
+                        <div class="bg-white p-4.5 rounded-2xl border border-obsidian-border space-y-3.5 m3-card">
+                            <div class="flex items-center justify-between">
+                                <h4 class="text-xs font-black text-obsidian-text font-mono">🚫 ADBLOCK STATUS INTEGRATED</h4>
+                                <span class="text-[9px] text-[#059669] font-bold font-mono">STRICT PRESET ON</span>
+                            </div>
+                            <div class="grid grid-cols-2 gap-2 text-center text-xs">
+                                <div class="bg-slate-50 border border-slate-200 rounded-xl p-2.5">
+                                    <span class="block">🚫 Ad filters</span>
+                                    <span class="block text-sm font-black text-obsidian-text mt-1">4,812</span>
+                                </div>
+                                <div class="bg-slate-50 border border-slate-200 rounded-xl p-2.5">
+                                    <span class="block">🛡️ Secure lock</span>
+                                    <span class="block text-sm font-black text-obsidian-text mt-1 text-[#059669]">AES-256</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Right Mock View -->
+                        <div class="bg-white p-4.5 rounded-2xl border border-obsidian-border space-y-2.5 m3-card flex flex-col justify-between">
+                            <div>
+                                <h4 class="text-xs font-black text-obsidian-text font-mono">☁️ CO-PILOT ASSISTANT HEARTBEAT</h4>
+                                <p class="text-[10px] text-obsidian-muted mt-0.5">Secure AI model auditing and compliance checklists computed locally.</p>
+                            </div>
+                            <div class="bg-slate-50 border border-slate-200 p-2 rounded-xl text-[9px] font-mono text-[#2563EB]">
+                                WARRIOR_AI: "Local sandbox parameters are optimized under zero-knowledge limits."
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
         </div>
     </section>
 
-    <!-- INTERACTIVE WEBPAGE BROWSER SIMULATOR -->
-    <section id="interactive-simulator" class="py-12 border-t border-obsidian-border bg-obsidian-light/10 relative">
+    <!-- INTERACTIVE APP SIMULATOR GRID -->
+    <section id="interactive-playground" class="py-14 border-t border-obsidian-border bg-white mt-4 relative">
         <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="text-center mb-8">
-                <span class="text-xs font-mono font-bold text-warrior-accent uppercase tracking-widest bg-purple-500/10 px-3 py-1.5 rounded-full">Interactive Feature Playground</span>
-                <h2 class="text-3xl font-extrabold text-white mt-4">Warrior X Live Web Simulator</h2>
-                <p class="text-sm text-gray-400 mt-2 max-w-2xl mx-auto">
-                    Try out our customized browsers features right now: interact with the sandbox shield dashboard, search the web securely, bookmark your favourite nodes, and connect with secure Google Accounts!
+            <div class="text-center max-w-3xl mx-auto mb-10">
+                <span class="text-xs font-bold text-warrior-blue uppercase tracking-widest bg-warrior-blue/10 px-3 py-1.5 rounded-full font-mono">Interactive Feature Sandbox</span>
+                <h2 class="text-2xl sm:text-3xl font-black text-obsidian-text mt-3">Live Android Client Simulator</h2>
+                <p class="text-sm text-obsidian-muted mt-2">
+                    Test the exact look and features of our Android browser client directly below. Change tabs, toggle the adblocker shields, write prompts in the AI chatbot companion, or set an AES-256 lock passphrase.
                 </p>
             </div>
 
-            <!-- CSS Glass Browser Mockup -->
-            <div class="rounded-2xl border-2 border-purple-500/30 glass-panel overflow-hidden p-3 shadow-2xl relative glow-effect">
-                <div class="absolute -top-12 -left-12 w-64 h-64 bg-indigo-500/10 rounded-full blur-[80px] pointer-events-none"></div>
-                <div class="absolute -bottom-12 -right-12 w-64 h-64 bg-purple-500/10 rounded-full blur-[80px] pointer-events-none"></div>
-                
-                <!-- Browser Titlebar Controls / Controls Panel -->
-                <div class="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 pb-3 border-b border-obsidian-border/50">
-                    <div class="flex items-center justify-between">
-                        <!-- Navigation dots -->
-                        <div class="flex items-center space-x-1.5 mr-4">
-                            <span class="w-3.5 h-3.5 rounded-full bg-red-500 border border-red-600 block cursor-pointer hover:bg-red-400" onclick="updateSimulatorFrame('warrior.secure')"></span>
-                            <span class="w-3.5 h-3.5 rounded-full bg-yellow-500 border border-yellow-600 block"></span>
-                            <span class="w-3.5 h-3.5 rounded-full bg-green-500 border border-green-600 block"></span>
-                        </div>
-                        
-                        <!-- Navigation arrow buttons -->
-                        <div class="flex items-center space-x-1 mr-3">
-                            <button class="p-1 px-1.5 rounded-lg hover:bg-obsidian-light/80 text-gray-400 hover:text-white transition-colors" onclick="goBackSimulated()">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5"/></svg>
-                            </button>
-                            <button class="p-1 px-1.5 rounded-lg hover:bg-obsidian-light/80 text-gray-400 hover:text-white transition-colors" onclick="goHomeSimulated()">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25"/></svg>
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Address bar + Shield toggle -->
-                    <div class="flex-1 flex items-center bg-obsidian-card border border-obsidian-border rounded-xl px-3 py-2 justify-between">
-                        <div class="flex items-center space-x-2 text-xs flex-1">
-                            <!-- Shield status toggle -->
-                            <button class="flex items-center space-x-1 py-0.5 px-2 bg-warrior-green/15 text-warrior-green border border-warrior-green/30 rounded" id="shield-indicator-btn" onclick="toggleShieldWidgetDropdown()">
-                                <span class="w-1.5 h-1.5 rounded-full bg-warrior-green animate-ping"></span>
-                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z"/></svg>
-                                <span class="font-bold text-[10px]">SHIELDS STRICT</span>
-                            </button>
-                            <span class="text-gray-500 font-mono select-none">https://</span>
-                            <!-- URL input field -->
-                            <form onsubmit="handleUrlSubmit(event)" class="flex-1 flex">
-                                <input id="simulator-url-input" type="text" value="warrior.secure" class="bg-transparent text-gray-200 outline-none w-full font-mono text-xs" />
-                            </form>
-                        </div>
-
-                        <!-- Mini refresh indicator -->
-                        <button onclick="reloadSimulated()" class="p-1 rounded text-gray-500 hover:text-white transition-colors">
-                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m-4.991 1.35H16.23"/></svg>
-                        </button>
-                    </div>
-
-                    <!-- User Cloud Sync Trigger & Identity button -->
-                    <div class="flex items-center space-x-1.5 bg-obsidian-light/60 px-2 py-1 rounded-xl border border-obsidian-border">
-                        <button class="text-xs bg-white text-black font-semibold px-2.5 py-1.5 rounded-lg flex items-center space-x-1 hover:bg-gray-200 transition-all font-mono" id="google-trigger-btn" onclick="openGoogleConnectorSimulated()">
-                            <span class="font-extrabold text-[#4285F4]">G</span>
-                            <span id="google-btn-text">Connect Account</span>
-                        </button>
-                    </div>
+            <!-- Embedded frame of the actual `/browser` page simulating an interactive emulator -->
+            <div class="max-w-4xl mx-auto border-8 border-slate-900 rounded-[2.5rem] overflow-hidden shadow-2xl relative bg-slate-900 shadow-slate-900/10">
+                <!-- Phone top speakers and camera notch -->
+                <div class="h-6 w-full flex items-center justify-center bg-slate-900 shrink-0">
+                    <div class="w-2.5 h-2.5 bg-slate-800 rounded-full mr-2"></div>
+                    <div class="w-16 h-1 hover:h-1.5 bg-slate-800 rounded-full transition-all"></div>
                 </div>
 
-                <!-- Adblock Shield Configuration Dropdown HUD -->
-                <div id="shield-dropdown" class="hidden absolute top-18 left-4 md:left-24 z-50 w-72 bg-obsidian border border-obsidian-border rounded-xl p-4 shadow-2xl glass-panel">
-                    <div class="flex items-center justify-between mb-3">
-                        <h4 class="font-bold text-xs font-mono tracking-wider text-warrior-accent uppercase">🛡️ Shield Dashboard</h4>
-                        <button onclick="toggleShieldWidgetDropdown()" class="text-gray-500 hover:text-white font-bold">&times;</button>
-                    </div>
-                    <div class="bg-obsidian-card border border-obsidian-border p-3 rounded-lg mb-3">
-                        <div class="flex justify-between items-center text-xs mb-1.5">
-                            <span class="text-gray-400">Trackers Filtered:</span>
-                            <span class="font-mono text-warrior-green font-bold" id="dashboard-trackers-val">1,248</span>
-                        </div>
-                        <div class="flex justify-between items-center text-xs">
-                            <span class="text-gray-400">Malicious Network Frames:</span>
-                            <span class="font-mono text-warrior-green font-bold">482</span>
-                        </div>
-                    </div>
-                    <div class="space-y-2">
-                        <span class="text-[10px] text-gray-500 uppercase tracking-widest font-bold font-mono">Shield Preset Standard</span>
-                        <div class="flex gap-1.5">
-                            <button id="preset-strict" class="flex-1 text-[10px] py-1 bg-purple-600 text-white font-bold rounded" onclick="setPresetMode('strict')">Strict</button>
-                            <button id="preset-standard" class="flex-1 text-[10px] py-1 bg-obsidian-light text-gray-400 rounded" onclick="setPresetMode('standard')">Standard</button>
-                            <button id="preset-minimal" class="flex-1 text-[10px] py-1 bg-obsidian-light text-gray-400 rounded" onclick="setPresetMode('minimal')">Minimal</button>
-                        </div>
-                    </div>
+                <!-- Simulation viewport loaded dynamically pointing to our modern browser implementation -->
+                <div class="w-full h-[580px] bg-obsidian-bg relative">
+                    <iframe class="w-full h-full border-none" src="/browser" title="Warrior X Simulated Engine Viewport"></iframe>
                 </div>
 
-                <!-- Simulated Cloud Google Account Selection Portal -->
-                <div id="simulated-google-portal" class="hidden absolute top-18 right-4 z-50 w-72 bg-gradient-to-b from-obsidian-card to-obsidian border-2 border-purple-500/50 rounded-2xl p-5 shadow-2xl glass-panel text-left">
-                    <div class="flex items-center justify-between mb-4">
-                        <span class="text-[10px] font-mono font-bold tracking-widest text-[#4285F4]">SECURE INTERACTIVE Handshake</span>
-                        <button onclick="closeGoogleConnectorSimulated()" class="text-gray-500 hover:text-white font-bold text-sm">&times;</button>
-                    </div>
-                    
-                    <div class="text-center mb-4">
-                        <div class="w-10 h-10 rounded-xl bg-purple-500/15 flex items-center justify-center font-extrabold text-purple-400 text-md mx-auto mb-2">G</div>
-                        <h4 class="font-bold text-white text-sm">Sign in with Google Account</h4>
-                        <p class="text-[10px] text-gray-400">Warrior end-to-end sandbox synchronization and telemetry portal</p>
-                    </div>
-
-                    <div class="space-y-1.5" id="google-accounts-list">
-                        <!-- Account item -->
-                        <div class="flex items-center space-x-3 p-2 rounded-xl border border-obsidian-border bg-obsidian/40 hover:border-purple-500/50 cursor-pointer transition-all" onclick="selectGoogleAccountSimulated('muhilsiddhesh.in@gmail.com', 'Muhil Siddhesh')">
-                            <div class="w-7 h-7 rounded-full bg-gradient-to-tr from-purple-500 to-indigo-500 flex items-center justify-center text-xs font-bold font-mono">M</div>
-                            <div>
-                                <h5 class="text-xs font-bold text-white leading-none">Muhil Siddhesh</h5>
-                                <span class="text-[9px] text-gray-500">muhilsiddhesh.in@gmail.com</span>
-                            </div>
-                        </div>
-                        <div class="flex items-center space-x-3 p-2 rounded-xl border border-obsidian-border bg-obsidian/40 hover:border-purple-500/50 cursor-pointer transition-all" onclick="selectGoogleAccountSimulated('warrior.secure.portal@gmail.com', 'Secure Sandbox Test')">
-                            <div class="w-7 h-7 rounded-full bg-gray-700 flex items-center justify-center text-xs font-bold font-mono">S</div>
-                            <div>
-                                <h5 class="text-xs font-bold text-white leading-none">Secure Sandbox Test</h5>
-                                <span class="text-[9px] text-gray-500">warrior.secure.portal@gmail.com</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="mt-4 border-t border-obsidian-border/50 pt-3">
-                        <label class="block text-[9px] font-bold text-gray-500 uppercase tracking-widest mb-1.5">Or use custom Google account</label>
-                        <div class="flex gap-2">
-                            <input id="custom-google-email-input" type="email" placeholder="email@gmail.com" class="bg-obsidian border border-obsidian-border rounded-lg text-xs px-2 py-1.5 flex-1 focus:border-purple-500 outline-none" />
-                            <button class="bg-purple-600 hover:bg-purple-500 px-3 py-1 text-xs text-white rounded-lg font-bold font-mono" onclick="submitCustomGoogleAccountSimulated()">Go</button>
-                        </div>
-                    </div>
+                <!-- Device Bottom Navigation Pill -->
+                <div class="h-6 w-full bg-slate-900 flex items-center justify-center shrink-0">
+                    <div class="w-24 h-1 bg-slate-600 rounded-full"></div>
                 </div>
+            </div>
 
-                <!-- Simulation Viewport Display Window -->
-                <div class="p-3 bg-[#08090C] border border-obsidian-border rounded-xl min-h-[420px] transition-all flex flex-col justify-between" id="viewport-view-root">
-                    
-                    <!-- DYNAMIC CONTAINER RENDERED VIA JAVASCRIPT DEFAULTING TO WARRIOR.SECURE STATE -->
-                    <div id="viewport-dynamic-content" class="w-full flex-1 flex flex-col">
-                        <!-- INITIAL CONTENT LOADED DYNAMICALLY IN JAVASCRIPT -->
-                    </div>
-
-                </div>
-
-                <!-- Preset Bookmarks bar -->
-                <div class="bg-obsidian/40 border-t border-obsidian-border/40 px-3 py-2 flex items-center space-x-4 overflow-x-auto text-xs mt-2 text-gray-400">
-                    <span class="font-mono text-[10px] text-gray-600 font-bold tracking-widest select-none">PRESETS:</span>
-                    <button class="hover:text-white flex items-center space-x-1 transition-colors" onclick="updateSimulatorFrame('warrior.secure')">
-                        <span class="w-1.5 h-1.5 rounded-full bg-purple-500"></span>
-                        <span class="font-semibold underline">🛡️ System Config Dashboard</span>
-                    </button>
-                    <button class="hover:text-white flex items-center space-x-1 transition-colors" onclick="updateSimulatorFrame('google.com')">
-                        <span class="w-1.5 h-1.5 rounded-full bg-[#4285F4]"></span>
-                        <span class="font-semibold underline">Google Search Simulator</span>
-                    </button>
-                    <button class="hover:text-white flex items-center space-x-1 transition-colors" onclick="updateSimulatorFrame('news.ycombinator.com')">
-                        <span class="w-1.5 h-1.5 rounded-full bg-orange-500"></span>
-                        <span class="font-semibold underline">Hacker News Adblocking preview</span>
-                    </button>
-                </div>
+            <div class="text-center mt-6">
+                <a href="/browser" class="inline-flex items-center space-x-1.5 text-xs text-warrior-blue font-bold underline hover:text-blue-600">
+                    <span>Open in dedicated full-screeen page</span>
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"/></svg>
+                </a>
             </div>
         </div>
     </section>
 
-    <!-- Project Capabilities Summary -->
-    <section id="features" class="py-16 md:py-24 border-t border-obsidian-border relative">
+    <!-- CORE CAPABILITIES GRID -->
+    <section id="features" class="py-14 border-t border-obsidian-border bg-obsidian-bg">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="text-center max-w-3xl mx-auto mb-16">
-                <h2 class="text-3xl font-extrabold text-white sm:text-4xl">
-                    Engineered for Privacy, Synced for Convenience
-                </h2>
-                <p class="mt-4 text-gray-400">
-                    The core core structure and layout of the system emphasizes zero-knowledge practices.
-                </p>
+            <div class="text-center max-w-3xl mx-auto mb-12">
+                <span class="text-xs font-bold text-warrior-blue uppercase tracking-widest font-mono">Capabilities Checklist</span>
+                <h2 class="text-2xl sm:text-3xl font-black text-obsidian-text mt-2">Zero-Knowledge Standards Built-in</h2>
+                <p class="text-xs sm:text-sm text-obsidian-muted mt-2">The core architecture is engineered from the ground up to protect user privacy above all else.</p>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-                <!-- Feature 1 -->
-                <div class="bg-obsidian-card border border-obsidian-border rounded-2xl p-6 hover:border-purple-500/50 hover:translate-y-[-4px] transition-all duration-300">
-                    <div class="w-10 h-10 rounded-lg bg-pink-500/10 flex items-center justify-center text-pink-400 mb-6 border border-pink-500/20">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- Item 1 -->
+                <div class="bg-white border border-obsidian-border p-6 rounded-2xl hover:border-warrior-blue/40 transition-all shadow-sm flex flex-col justify-between">
+                    <div>
+                        <div class="w-10 h-10 rounded-xl bg-orange-100 text-orange-700 flex items-center justify-center font-bold text-md mb-4 shadow-inner">🔒</div>
+                        <h4 class="font-bold text-sm text-obsidian-text mb-2 font-mono uppercase">On-Device Cryptography</h4>
+                        <p class="text-xs text-obsidian-muted leading-relaxed">
+                            Derive custom symmetric encryption keys using your passphrase. No master keys are ever stored or transferred to global sync nodes.
+                        </p>
                     </div>
-                    <h3 class="text-lg font-bold text-white mb-2">Zero-Knowledge Encrypted Engine</h3>
-                    <p class="text-sm text-gray-400 leading-relaxed">
-                        Data payload is fully encrypted on-device via a multi-layered local AES-256 algorithm before transfer. The sync node hosts only the raw payload.
-                    </p>
+                    <span class="text-[9px] text-warrior-blue font-bold block mt-4 font-mono">Symmetric AES-256 standard</span>
                 </div>
 
-                <!-- Feature 2 -->
-                <div class="bg-obsidian-card border border-obsidian-border rounded-2xl p-6 hover:border-purple-500/50 hover:translate-y-[-4px] transition-all duration-300">
-                    <div class="w-10 h-10 rounded-lg bg-[#4285F4]/10 flex items-center justify-center text-[#4285F4] mb-6 border border-[#4285F4]/20">
-                        <span class="font-extrabold text-md">G</span>
+                <!-- Item 2 -->
+                <div class="bg-white border border-obsidian-border p-6 rounded-2xl hover:border-warrior-blue/40 transition-all shadow-sm flex flex-col justify-between">
+                    <div>
+                        <div class="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-md mb-4 shadow-inner">🚫</div>
+                        <h4 class="font-bold text-sm text-obsidian-text mb-2 font-mono uppercase">Strict Shield Cockpit</h4>
+                        <p class="text-xs text-obsidian-muted leading-relaxed">
+                            Aggressively block malicious advertisements, cookie consent banners and JavaScript mining nodes. Boosts speed up to 3x.
+                        </p>
                     </div>
-                    <h3 class="text-lg font-bold text-white mb-2">Google Unified Hub</h3>
-                    <p class="text-sm text-gray-400 leading-relaxed">
-                        A modern, customized continue button supporting safe login/signup. Updates your cloud node bookmarks asynchronously with full integrity protection.
-                    </p>
+                    <span class="text-[9px] text-[#059669] font-bold block mt-4 font-mono">Native Ad-filtering engine</span>
                 </div>
 
-                <!-- Feature 3 -->
-                <div class="bg-obsidian-card border border-obsidian-border rounded-2xl p-6 hover:border-purple-500/50 hover:translate-y-[-4px] transition-all duration-300">
-                    <div class="w-10 h-10 rounded-lg bg-warrior-green/10 flex items-center justify-center text-warrior-green mb-6 border border-warrior-green/20">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+                <!-- Item 3 -->
+                <div class="bg-white border border-obsidian-border p-6 rounded-2xl hover:border-warrior-blue/40 transition-all shadow-sm flex flex-col justify-between">
+                    <div>
+                        <div class="w-10 h-10 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center font-bold text-md mb-4 shadow-inner">✨</div>
+                        <h4 class="font-bold text-sm text-obsidian-text mb-2 font-mono uppercase">Google Auth Sync</h4>
+                        <p class="text-xs text-obsidian-muted leading-relaxed">
+                            Integrate secure Google credentials. Multi-device heartbeats maintain secure end-to-end cloud database sync effortlessly.
+                        </p>
                     </div>
-                    <h3 class="text-lg font-bold text-white mb-2">Built-in Shield Cockpit</h3>
-                    <p class="text-sm text-gray-400 leading-relaxed">
-                        Aggressive local ad-blocking shield profiles (Strict, Standard, Minimal) filtering out tracking nodes, malicious network frames, and cookie prompts.
-                    </p>
+                    <span class="text-[9px] text-warrior-purple font-bold block mt-4 font-mono">Federated Cloud handshakes</span>
                 </div>
             </div>
         </div>
     </section>
 
-    <!-- PROJECT DOWNLOAD AND APK INSTRUCTIONS -->
-    <section id="apk-guide" class="py-16 md:py-24 border-t border-obsidian-border bg-gradient-to-b from-[#0B0C0E] to-[#12141C] relative">
-        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="text-center mb-12">
-                <span class="text-xs font-mono font-bold text-warrior-green uppercase tracking-widest bg-warrior-green/10 px-3 py-1.5 rounded-full">Android Installation Center</span>
-                <h2 class="text-3xl font-extrabold text-white mt-4">
-                    Download & Run the Warrior X Android App
-                </h2>
-                <p class="text-sm text-gray-400 mt-2">
-                    Because this project has been fully built and compiled successfully inside Google AI Studio, you have two native routes to acquire your installer:
-                </p>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
-                <!-- Route A: Generate APK in Workspace -->
-                <div class="bg-obsidian-card border border-obsidian-border rounded-2xl p-6 relative overflow-hidden flex flex-col justify-between">
-                    <div class="absolute top-0 right-0 w-24 h-24 bg-purple-600/10 rounded-full blur-xl"></div>
-                    <div>
-                        <div class="text-xs font-mono text-purple-400 font-bold uppercase mb-2">ROUTE A — DIRECT APK FILE</div>
-                        <h4 class="text-lg font-bold text-white mb-3">Export/Download APK from Settings</h4>
-                        <p class="text-xs text-gray-400 leading-relaxed mb-4">
-                            You can directly trigger an APK download via AI Studio's user interface. The cloud compiler has already checked the codebase and finished cooking the APK payload.
-                        </p>
-                        <ol class="list-decimal list-inside text-xs text-gray-300 space-y-2 mb-4">
-                            <li>Look at the top right of the Google AI Studio build dashboard.</li>
-                            <li>Open the <strong>Settings / Project</strong> Menu.</li>
-                            <li>Click <strong>Download / Generate APK</strong> to trigger instant client delivery.</li>
-                            <li>Copy the resulting <code class="bg-obsidian px-1 text-purple-300">app-debug.apk</code> file onto any Android emulator or physical device.</li>
-                        </ol>
-                    </div>
-                </div>
-
-                <!-- Route B: Extract ZIP Archive -->
-                <div class="bg-obsidian-card border border-obsidian-border rounded-2xl p-6 relative overflow-hidden flex flex-col justify-between">
-                    <div class="absolute top-0 right-0 w-24 h-24 bg-indigo-600/10 rounded-full blur-xl"></div>
-                    <div>
-                        <div class="text-xs font-mono text-indigo-400 font-bold uppercase mb-2">ROUTE B — COMPILE LOCALLY</div>
-                        <h4 class="text-lg font-bold text-white mb-3">Export Project Zip & Gradle Build</h4>
-                        <p class="text-xs text-gray-400 leading-relaxed mb-4">
-                            Want to build using Android Studio or verify our high-performance Kotlin logic? You can grab a clean ZIP archive of the entire environment.
-                        </p>
-                        <ol class="list-decimal list-inside text-xs text-gray-300 space-y-2 mb-4">
-                            <li>Tap the top header menu inside Google AI Studio.</li>
-                            <li>Select <strong>Export Project as ZIP</strong>.</li>
-                            <li>Unpack on your workstation and open with <strong>Android Studio Koala/Ladybug</strong>.</li>
-                            <li>Run <code class="bg-obsidian px-1 text-indigo-300">gradle assembleDebug</code> or hit Play to build the application natively.</li>
-                        </ol>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Streaming Emulator Instruction Notice -->
-            <div class="bg-obsidian-light/60 border border-obsidian-border rounded-xl p-5 text-center">
-                <span class="inline-block w-2.5 h-2.5 rounded-full bg-warrior-green mr-2"></span>
-                <span class="text-xs text-gray-300 font-medium">
-                    You can also test the live instance of the browser instantly inside our <strong>Streaming Android Emulator</strong> located inside the AI Studio web panel right now!
-                </span>
-            </div>
-        </div>
-    </section>
-
-    <!-- Detailed Vercel Deployment Section -->
-    <section id="deploy" class="py-16 md:py-24 border-t border-obsidian-border relative">
-        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[300px] bg-purple-600/5 rounded-full blur-[140px] pointer-events-none"></div>
+    <!-- NATIVE INSTALL PATHWAY / GET THE APP APK -->
+    <section id="apk-manager" class="py-14 border-t border-obsidian-border bg-white">
         <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <span class="text-xs font-mono font-bold text-warrior-accent uppercase tracking-widest bg-purple-500/10 px-3 py-1.5 rounded-full">Hosting Control Vault</span>
-            <h2 class="text-3xl font-extrabold text-white mt-6 mb-4">
-                Deploying this Cyber Deck to Vercel
-            </h2>
-            <p class="text-gray-400 max-w-2xl mx-auto mb-8 font-light">
-                Simply link this GitHub repository directly inside the Vercel dashboard. Our pre-configured <code class="font-mono text-white bg-obsidian-light px-1.5 py-0.5 rounded text-xs text-purple-300">vercel.json</code> directs Vercel to render this high-fidelity interactive overview page instantly.
+            <span class="text-xs font-bold text-emerald-700 uppercase tracking-widest bg-emerald-100 border border-emerald-200 px-3.5 py-1.5 rounded-full font-mono">Installer Center</span>
+            <h2 class="text-2xl sm:text-3xl font-black text-obsidian-text mt-4 mb-3">Sideload & Install the Android App</h2>
+            <p class="text-xs sm:text-sm text-obsidian-muted max-w-xl mx-auto mb-8">
+                The Warrior X Android client is pre-cooked and compiled inside Google AI Studio, meaning you have instant access to get the executable payload.
             </p>
 
-            <div class="bg-obsidian-card rounded-2xl border border-obsidian-border p-6 text-left max-w-2xl mx-auto mb-8">
-                <h4 class="font-bold text-white mb-3 text-sm tracking-wide uppercase font-mono text-warrior-accent flex items-center space-x-2">
-                    <span class="w-2 h-2 rounded-full bg-purple-500"></span>
-                    <span>Steps to push alive to Vercel:</span>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-5 text-left mb-8">
+                <!-- Column 1 -->
+                <div class="bg-obsidian-bg p-5 rounded-2xl border border-obsidian-border relative overflow-hidden flex flex-col justify-between">
+                    <div>
+                        <span class="text-[9.5px] font-bold text-warrior-blue tracking-wider uppercase font-mono block mb-2">ROUTE A — DIRECT APK FILE</span>
+                        <h4 class="font-extrabold text-sm text-obsidian-text mb-2.5">Download APK from Settings HUD</h4>
+                        <p class="text-xs text-obsidian-muted leading-relaxed">
+                            You can directly trigger an APK compiled download. The cloud compiler has pre-packed the APK executable for swift side-loading.
+                        </p>
+                        <ol class="list-decimal list-inside text-[11px] text-obsidian-text space-y-2 mt-4 leading-medium font-semibold">
+                            <li>Look at the top-right of the Google AI Studio dashboard.</li>
+                            <li>Reveal the **Settings / Project** catalog.</li>
+                            <li>Click **Download/Generate APK** option.</li>
+                            <li>Install resulting <code class="bg-white border rounded px-1 text-warrior-blue font-mono text-[9px]">app-debug.apk</code> payload.</li>
+                        </ol>
+                    </div>
+                </div>
+
+                <!-- Column 2 -->
+                <div class="bg-obsidian-bg p-5 rounded-2xl border border-obsidian-border relative overflow-hidden flex flex-col justify-between">
+                    <div>
+                        <span class="text-[9.5px] font-bold text-warrior-teal tracking-wider uppercase font-mono block mb-2">ROUTE B — COMPILE LOCALLY</span>
+                        <h4 class="font-extrabold text-sm text-obsidian-text mb-2.5">Export ZIP Source & Build Natively</h4>
+                        <p class="text-xs text-obsidian-muted leading-relaxed">
+                            Want to modify security protocols or review performance Kotlin files inside native environments? Get the full source payload.
+                        </p>
+                        <ol class="list-decimal list-inside text-[11px] text-obsidian-text space-y-2 mt-4 leading-medium font-semibold">
+                            <li>Tap the header menu inside AI Studio workspace.</li>
+                            <li>Specify **Export Project as ZIP** archive.</li>
+                            <li>Unpack on your desk and access with **Android Studio**.</li>
+                            <li>Run <code class="bg-white border rounded px-1 text-warrior-teal font-mono text-[9px]">gradle assembleDebug</code> or hit Play to run.</li>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Emulator Notice -->
+            <div class="bg-emerald-50 text-emerald-800 border border-emerald-100 rounded-2xl p-4 text-xs font-semibold">
+                <span class="inline-block w-2.5 h-2.5 rounded-full bg-emerald-500 mr-2 animate-ping"></span>
+                <span>Wait, did you know? You can test the live instance of the app securely inside our streaming Android emulator located in the AI Studio editor right now!</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- HOSTING ENVIRONMENT SETUP / DEPLOY TO VERCEL -->
+    <section id="deploy-vercel" class="py-14 border-t border-obsidian-border bg-obsidian-bg relative">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <span class="text-xs font-bold text-warrior-purple uppercase tracking-widest bg-purple-100 border border-purple-200 px-3.5 py-1.5 rounded-full font-mono">Deployment Console</span>
+            <h2 class="text-2xl sm:text-3xl font-black text-obsidian-text mt-4 mb-3">Deploying this website to Vercel</h2>
+            <p class="text-xs sm:text-sm text-obsidian-muted max-w-xl mx-auto mb-8">
+                Host this landing site and fully working browser simulation on Vercel under custom domain protocols.
+            </p>
+
+            <div class="bg-white text-left p-5.5 rounded-2xl border border-obsidian-border max-w-xl mx-auto shadow-sm">
+                <h4 class="font-extrabold text-xs text-warrior-purple uppercase font-mono flex items-center space-x-2 mb-3.5">
+                    <span class="w-1.5 h-1.5 rounded-full bg-warrior-purple"></span>
+                    <span>Setup steps mapping:</span>
                 </h4>
-                <ol class="list-decimal list-inside space-y-3.5 text-sm text-gray-300">
-                    <li>Push this codebase directly to a private or public GitHub repository.</li>
-                    <li>Open your <a href="https://vercel.com" target="_blank" class="text-purple-400 underline font-medium hover:text-purple-300">Vercel Dashboard</a> and click <strong>Add New Project</strong>.</li>
-                    <li>Connect your GitHub account and select this repository.</li>
-                    <li>Leave all Build Options as default (Vercel automatically detects the root static asset structures, launching <code class="text-purple-300 font-mono text-xs">index.html</code> directly).</li>
-                    <li>Click <strong>Deploy</strong> and watch Vercel deploy your live site in less than 10 seconds!</li>
+                <ol class="list-decimal list-inside space-y-3 text-xs text-obsidian-text font-semibold">
+                    <li>Push this codebase directly to a public/private GitHub repository.</li>
+                    <li>Access your <a href="https://vercel.com" target="_blank" class="text-warrior-blue hover:underline">Vercel Dashboard</a> and specify <strong>Add New Project</strong>.</li>
+                    <li>Connect your GitHub profile and add this repository.</li>
+                    <li>Leave as default. Vercel will discover <code class="font-mono text-warrior-blue text-[10px]">vercel.json</code> routing immediately.</li>
+                    <li>Click <strong>Deploy</strong> and watch the server publish in under 10 seconds!</li>
                 </ol>
             </div>
-
-            <!-- Built-in Deploy Button Mockup -->
-            <div class="inline-flex items-center gap-3 bg-obsidian border border-obsidian-border rounded-xl p-3">
-                <svg class="h-6 w-6 text-white" viewBox="0 0 116 100" fill="currentColor"><path d="M57.5 0L115 100H0L57.5 0Z"></path></svg>
-                <div class="text-left">
-                    <span class="block text-[10px] text-gray-500 font-bold uppercase tracking-wider">Vercel Integration Status</span>
-                    <span class="text-xs text-warrior-green font-bold">Safe Configuration Loaded (&lt;/&gt; vercel.json)</span>
-                </div>
-            </div>
         </div>
     </section>
 
-    <!-- Footer -->
-    <footer class="border-t border-obsidian-border bg-obsidian py-8">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between text-xs text-gray-500">
-            <p>&copy; 2026 Warrior X Browser Core. All cryptographic components and dynamic sandbox architectures are safe under GPLv3 protective licenses.</p>
-            <div class="flex space-x-6 mt-4 md:mt-0">
-                <a href="#" class="hover:text-gray-300">Privacy Policy</a>
-                <a href="#" class="hover:text-gray-300">Licensing</a>
-                <a href="#" class="hover:text-gray-300">GitHub Core</a>
+    <!-- FOOTER SURFACE -->
+    <footer class="border-t border-obsidian-border bg-white py-6 mt-auto">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between text-[11px] text-obsidian-muted font-mono">
+            <p>&copy; 2026 Warrior X Browser. All cryptographic algorithms compiled under GPLv3 license.</p>
+            <div class="flex space-x-4 mt-2 md:mt-0 font-bold">
+                <a href="#" class="hover:text-obsidian-text">Security Standards</a>
+                <a href="#" class="hover:text-obsidian-text">Licensing</a>
+                <a href="#" class="hover:text-obsidian-text font-extrabold text-warrior-blue">war.dev portal</a>
             </div>
         </div>
     </footer>
-
-    <!-- INTERACTIVE SIMULATOR JAVASCRIPT LOGIC -->
-    <script>
-        // Simulated Browser States
-        let currentUrl = "warrior.secure";
-        let previousUrls = [];
-        let trackersBlocked = 1248;
-        let shieldPreset = 'strict';
-        
-        // Signed in user record
-        let activeUserEmail = null;
-        let activeUserName = null;
-
-        function initSimulation() {
-            updateSimulatorFrame(currentUrl);
-        }
-
-        function reloadSimulated() {
-            // Animate refresh icon spin and reload frame content
-            trackersBlocked += Math.floor(Math.random() * 8) + 2;
-            document.getElementById('dashboard-trackers-val').innerText = trackersBlocked.toLocaleString();
-            
-            const btn = document.querySelector('button[onclick="reloadSimulated()"]');
-            btn.classList.add('animate-spin');
-            setTimeout(() => {
-                btn.classList.remove('animate-spin');
-                updateSimulatorFrame(currentUrl);
-            }, 600);
-        }
-
-        function goBackSimulated() {
-            if (previousUrls.length > 0) {
-                const prev = previousUrls.pop();
-                currentUrl = prev;
-                document.getElementById('simulator-url-input').value = prev;
-                renderSimulation(prev);
-            }
-        }
-
-        function goHomeSimulated() {
-            updateSimulatorFrame('warrior.secure');
-        }
-
-        function updateSimulatorFrame(newUrl) {
-            if (currentUrl !== newUrl) {
-                previousUrls.push(currentUrl);
-            }
-            currentUrl = newUrl;
-            document.getElementById('simulator-url-input').value = newUrl;
-            renderSimulation(newUrl);
-        }
-
-        function handleUrlSubmit(event) {
-            event.preventDefault();
-            const inputVal = document.getElementById('simulator-url-input').value.trim();
-            if (inputVal) {
-                // simple validation prefix
-                let cleanUrl = inputVal.replace(/^(https?:\/\/)?(www\.)?/, '').toLowerCase();
-                updateSimulatorFrame(cleanUrl);
-            }
-        }
-
-        function toggleShieldWidgetDropdown() {
-            const dropdown = document.getElementById('shield-dropdown');
-            dropdown.classList.toggle('hidden');
-        }
-
-        function setPresetMode(mode) {
-            shieldPreset = mode;
-            // update UI buttons colors
-            document.getElementById('preset-strict').className = mode === 'strict' ? 'flex-1 text-[10px] py-1 bg-purple-600 text-white font-bold rounded' : 'flex-1 text-[10px] py-1 bg-obsidian-light text-gray-400 rounded';
-            document.getElementById('preset-standard').className = mode === 'standard' ? 'flex-1 text-[10px] py-1 bg-purple-600 text-white font-bold rounded' : 'flex-1 text-[10px] py-1 bg-obsidian-light text-gray-400 rounded';
-            document.getElementById('preset-minimal').className = mode === 'minimal' ? 'flex-1 text-[10px] py-1 bg-purple-600 text-white font-bold rounded' : 'flex-1 text-[10px] py-1 bg-obsidian-light text-gray-400 rounded';
-            
-            // update shield badge
-            const badge = document.getElementById('shield-indicator-btn');
-            if (mode === 'strict') {
-                badge.className = "flex items-center space-x-1 py-0.5 px-2 bg-warrior-green/15 text-warrior-green border border-warrior-green/30 rounded";
-                badge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-warrior-green animate-ping"></span><span class="font-bold text-[10px]">SHIELDS STRICT</span>`;
-            } else if (mode === 'standard') {
-                badge.className = "flex items-center space-x-1 py-0.5 px-2 bg-yellow-500/15 text-yellow-500 border border-yellow-500/30 rounded";
-                badge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-yellow-500"></span><span class="font-bold text-[10px]">SHIELDS NORMAL</span>`;
-            } else {
-                badge.className = "flex items-center space-x-1 py-0.5 px-2 bg-red-500/15 text-red-500 border border-red-500/30 rounded";
-                badge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-red-500"></span><span class="font-bold text-[10px]">SHIELDS OFF</span>`;
-            }
-        }
-
-        function openGoogleConnectorSimulated() {
-            const portal = document.getElementById('simulated-google-portal');
-            portal.classList.toggle('hidden');
-        }
-
-        function closeGoogleConnectorSimulated() {
-            document.getElementById('simulated-google-portal').classList.add('hidden');
-        }
-
-        function selectGoogleAccountSimulated(email, name) {
-            activeUserEmail = email;
-            activeUserName = name;
-            closeGoogleConnectorSimulated();
-            
-            // change connect button to signed state
-            const triggerBtn = document.getElementById('google-trigger-btn');
-            triggerBtn.className = "text-xs bg-warrior-green text-white font-semibold px-2.5 py-1.5 rounded-lg flex items-center space-x-1 hover:bg-green-600 transition-all font-mono";
-            triggerBtn.innerHTML = `<span class="w-2 h-2 rounded-full bg-white block animate-pulse"></span><span>Portal Synced</span>`;
-            
-            // show success toast inside simulator viewport
-            reloadSimulated();
-        }
-
-        function submitCustomGoogleAccountSimulated() {
-            const customEmail = document.getElementById('custom-google-email-input').value.trim();
-            if (customEmail.includes('@')) {
-                selectGoogleAccountSimulated(customEmail, customEmail.split('@')[0]);
-            } else if (customEmail) {
-                selectGoogleAccountSimulated(customEmail + '@gmail.com', customEmail);
-            }
-        }
-
-        // Render Page simulated layouts based on current user URL address
-        function renderSimulation(url) {
-            const viewport = document.getElementById('viewport-dynamic-content');
-            
-            let accountHeaderBanner = '';
-            if (activeUserEmail) {
-                accountHeaderBanner = `
-                  <div class="bg-gradient-to-r from-warrior-purple/20 via-indigo-600/10 to-transparent p-3 rounded-xl border border-purple-500/20 mb-4 flex items-center justify-between text-xs">
-                     <div class="flex items-center space-x-2">
-                        <span class="inline-block w-2.5 h-2.5 rounded-full bg-warrior-green"></span>
-                        <p class="text-gray-300">Sync Master Active: <strong class="text-white">${activeUserEmail}</strong> (Node: Encrypted-Handshake)</p>
-                     </div>
-                     <span class="text-[9px] font-mono text-purple-400 font-bold uppercase tracking-widest bg-purple-500/10 px-2 py-0.5 rounded">AES KEY ACTIVE</span>
-                  </div>
-                `;
-            }
-
-            if (url === 'warrior.secure' || url === 'system' || url === '') {
-                viewport.innerHTML = `
-                    ${accountHeaderBanner}
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pb-4">
-                        <!-- Left Panel: encryption settings -->
-                        <div class="bg-obsidian-card border border-obsidian-border rounded-xl p-4">
-                            <h4 class="text-xs font-mono font-bold tracking-widest text-warrior-accent uppercase mb-2">🔐 Core End-to-End Encryption</h4>
-                            <p class="text-[11px] text-gray-400 mb-3 leading-relaxed">Secure your state parameters (bookmarks, shield values, cookies, inputs) under high-entropy local passphrase keys.</p>
-                            
-                            <div class="space-y-2">
-                                <label class="text-[10px] text-gray-500 uppercase tracking-wide block">Current client key</label>
-                                <input type="password" value="warrior_vault_hardened_seed_2026" disabled class="bg-obsidian border border-obsidian-border text-xs px-2.5 py-1.5 rounded-lg w-full text-gray-400 font-mono" />
-                                <button class="w-full bg-purple-600 hover:bg-purple-500 py-1.5 text-xs text-white rounded-lg font-bold font-mono transition-all" onclick="alert('Client encryption dynamic key applied successfully inside the Sandbox client.')">Apply Decentralized Key</button>
-                            </div>
-                        </div>
-
-                        <!-- Right Panel: telemetry stats -->
-                        <div class="bg-obsidian-card border border-obsidian-border rounded-xl p-4 flex flex-col justify-between">
-                            <div>
-                                <h4 class="text-xs font-mono font-bold tracking-widest text-warrior-green uppercase mb-2">📊 Network Cockpit Status</h4>
-                                <div class="grid grid-cols-2 gap-2 mt-2">
-                                    <div class="bg-obsidian/60 p-2 rounded-lg border border-obsidian-border/50 text-center">
-                                        <span class="text-[9px] text-gray-500 uppercase font-mono">Shield Preset</span>
-                                        <p class="text-white text-xs font-extrabold uppercase mt-1" id="sandbox-preset-indicator">${shieldPreset}</p>
-                                    </div>
-                                    <div class="bg-obsidian/60 p-2 rounded-lg border border-obsidian-border/50 text-center">
-                                        <span class="text-[9px] text-gray-500 uppercase font-mono">Node Connection</span>
-                                        <p class="text-warrior-green text-xs font-extrabold mt-1">OK (SECURE)</p>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="bg-purple-500/5 border border-purple-500/10 p-2 rounded-lg text-[10px] text-gray-400 leading-relaxed mt-3">
-                                🛡️ <strong>Shield Statistics:</strong> Standard shield policies filters trackers aggressively in compact devices.
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="bg-obsidian-card border border-obsidian-border p-3 rounded-lg text-xs flex justify-between items-center mt-auto">
-                        <span class="text-gray-400">Want this browser on your physical system?</span>
-                        <a href="#apk-guide" class="text-warrior-accent underline font-bold">Download APK Guide</a>
-                    </div>
-                `;
-            } else if (url === 'google.com') {
-                viewport.innerHTML = `
-                    <div class="flex flex-col items-center justify-center py-8">
-                        <div class="text-2xl font-bold flex items-center space-x-1.5 mb-6">
-                            <span class="text-[#4285F4]">G</span>
-                            <span class="text-[#EA4335]">o</span>
-                            <span class="text-[#FBBC05]">o</span>
-                            <span class="text-[#4285F4]">g</span>
-                            <span class="text-[#34A853]">l</span>
-                            <span class="text-[#EA4335]">e</span>
-                            <span class="bg-purple-500/10 text-purple-400 text-[9px] px-1.5 py-0.2 rounded font-mono font-bold ml-2">WARRIOR SHIELD PREVIEW</span>
-                        </div>
-
-                        <!-- Secure Google Search Bar input mockup -->
-                        <div class="max-w-md w-full bg-obsidian-card border border-obsidian-border rounded-full p-2.5 px-4 flex items-center shadow-lg hover:border-purple-500/50 transition-all mb-4">
-                            <svg class="w-4 h-4 text-gray-500 mr-2" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
-                            <input id="google-search-input" type="text" placeholder="Type query to secure-search or enter..." value="Warrior X Browser Deploy Vercel" class="bg-transparent outline-none text-xs text-white w-full" onkeydown="if(event.key === 'Enter') handleGoogleSearchSimulated()" />
-                            <button onclick="handleGoogleSearchSimulated()" class="text-xs text-purple-400 font-bold hover:text-white transition-colors">Search</button>
-                        </div>
-
-                        <div class="flex gap-2 text-[10px] text-gray-500">
-                            <span>Google Offered in:</span>
-                            <a href="#" class="text-purple-400 hover:underline">English</a>
-                            <a href="#" class="text-purple-400 hover:underline">Secure Handshake Mode</a>
-                        </div>
-                    </div>
-                `;
-            } else if (url.startsWith('google.com/search') || url.includes('search?q=')) {
-                viewport.innerHTML = `
-                    <div class="text-left w-full">
-                        <div class="border-b border-obsidian-border/50 pb-2 mb-4 flex items-center justify-between text-xs text-gray-400">
-                            <span>Google Secure Search Results</span>
-                            <button onclick="updateSimulatorFrame('google.com')" class="text-purple-400 underline hover:text-white">&larr; Return to Google Home</button>
-                        </div>
-                        
-                        <div class="space-y-4">
-                            <!-- Link Result 1 -->
-                            <div class="bg-obsidian-card border border-obsidian-border p-3.5 rounded-xl">
-                                <span class="text-[10px] text-gray-500 block font-mono">https://github.com/aistudio/warrior-browser</span>
-                                <h4 class="text-sm font-bold text-warrior-accent hover:underline cursor-pointer" onclick="updateSimulatorFrame('warrior.secure')">Warrior X Browser: GitHub Code Repository Setup</h4>
-                                <p class="text-xs text-gray-400 mt-1">Get clean decentralized core android files. Instructions on how to download APK using the workspace build tools included.</p>
-                            </div>
-
-                            <!-- Link Result 2 -->
-                            <div class="bg-obsidian-card border border-obsidian-border p-3.5 rounded-xl">
-                                <span class="text-[10px] text-gray-500 block font-mono">https://vercel.com/templates/warrior-x</span>
-                                <h4 class="text-sm font-bold text-warrior-accent hover:underline cursor-pointer" onclick="updateSimulatorFrame('warrior.secure')">How to Deploy Warrior Landing Hub on Vercel</h4>
-                                <p class="text-xs text-gray-400 mt-1">Simple guide to connecting personal directories inside the Vercel cloud provider for high speed serverless loads.</p>
-                            </div>
-                        </div>
-                    </div>
-                `;
-            } else if (url === 'news.ycombinator.com') {
-                viewport.innerHTML = `
-                    <div class="border-b border-orange-500/30 pb-2 mb-3 bg-orange-500/10 p-2 rounded flex justify-between items-center text-xs">
-                        <div class="flex items-center space-x-2">
-                            <span class="w-6 h-6 bg-orange-500 text-white font-bold flex items-center justify-center text-xs rounded select-none font-mono">Y</span>
-                            <strong class="text-white">Secure Hacker News Client Preview</strong>
-                        </div>
-                        <span class="bg-warrior-green/15 text-warrior-green text-[9px] font-mono font-bold px-2 py-0.5 rounded">🛡️ 14 Trackers Filtered</span>
-                    </div>
-
-                    <div class="space-y-2 text-left">
-                        <!-- News Item 1 -->
-                        <div class="p-2 border-b border-obsidian-border/50 hover:bg-obsidian-light/30 rounded cursor-pointer">
-                            <span class="text-gray-500 text-[10px]">1. (warrior.x)</span>
-                            <span class="text-xs text-white font-semibold">Warrior Browser releases zero-knowledge sandbox sync with Google federated node support</span>
-                            <span class="block text-[9px] text-purple-400">128 points by muhilsiddhesh 2 hours ago | 44 comments</span>
-                        </div>
-                        
-                        <!-- News Item 2 -->
-                        <div class="p-2 border-b border-obsidian-border/50 hover:bg-obsidian-light/30 rounded cursor-pointer">
-                            <span class="text-gray-500 text-[10px]">2. (vercel.com)</span>
-                            <span class="text-xs text-white font-semibold">Vercel integration specs loaded: vercel.json configurations parsed perfectly</span>
-                            <span class="block text-[9px] text-purple-400 font-medium">92 points by vercel-deploy-nodes 4 hours ago | 21 comments</span>
-                        </div>
-                    </div>
-                `;
-            } else {
-                // FALLBACK MOCK FOR GIVEN RANDOM URLS Typed by customer
-                viewport.innerHTML = `
-                    <div class="text-center py-10 flex flex-col items-center">
-                        <div class="w-12 h-12 rounded-full bg-warrior-green/10 flex items-center justify-center text-warrior-green mb-4 border border-warrior-green/20">
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z"/></svg>
-                        </div>
-                        
-                        <h4 class="text-md font-bold text-white mb-2">Simulated Secure Connection: <span class="text-warrior-accent">${url}</span></h4>
-                        <p class="text-xs text-gray-400 max-w-sm mb-4 leading-relaxed">
-                            🛡️ Warrior Sandbox aggressively blocked <strong>38 ads, tracker scripts, and tracking cookie elements</strong> on this domain.
-                        </p>
-
-                        <div class="bg-obsidian-card border border-obsidian-border p-3.5 rounded-xl text-[11px] text-left text-gray-400 max-w-md">
-                            <p class="font-mono text-white mb-1 uppercase tracking-wide text-[9px] text-purple-400">Sandbox Safety Logs:</p>
-                            <span class="block">&bull; Content isolated inside Chromium Security sandboxing container</span>
-                            <span class="block">&bull; Cryptographic Zero-Knowledge key seed is secure</span>
-                            <span class="block">&bull; Federated Google sync node handshake completed: active</span>
-                        </div>
-                    </div>
-                `;
-            }
-        }
-
-        function handleGoogleSearchSimulated() {
-            const query = document.getElementById('google-search-input').value.trim();
-            if (query) {
-                updateSimulatorFrame('google.com/search?q=' + encodeURIComponent(query));
-            }
-        }
-    </script>
 </body>
 </html>
